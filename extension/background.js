@@ -118,11 +118,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 });
 
 // ── Forward keyboard command to active tab ────────────────────────────────────
-chrome.commands.onCommand.addListener((command) => {
+chrome.commands.onCommand.addListener(async (command) => {
   if (command !== "optimize-prompt") return;
 
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    if (!tab?.id) return;
-    chrome.tabs.sendMessage(tab.id, { type: "PROMPTLY_COMMAND" });
-  });
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { action: "optimize" });
+  } catch (err) {
+    // content script not ready — inject it manually then retry
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["overlay.js"] });
+    setTimeout(() => {
+      chrome.tabs.sendMessage(tab.id, { action: "optimize" });
+    }, 500);
+  }
 });

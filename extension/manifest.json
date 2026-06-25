@@ -26,13 +26,10 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://claude.ai/*",
-        "https://chat.openai.com/*",
-        "https://gemini.google.com/*"
-      ],
-      "js": ["overlay.js", "content.js"],
-      "run_at": "document_idle"
+      "matches": ["https://claude.ai/*", "https://chat.openai.com/*"],
+      "js": ["content.js", "overlay.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ]
 }

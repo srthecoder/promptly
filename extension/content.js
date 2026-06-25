@@ -93,5 +93,5 @@ async function optimize() {
 
 // ── Listen for command forwarded by background.js ─────────────────────────────
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "PROMPTLY_COMMAND") optimize();
+  if (msg.action === "optimize") optimize();
 });
