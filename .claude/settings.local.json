@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(python3 -c \"import streamlit; import tiktoken; import fitz; print\\('core deps OK'\\)\")",
+      "Bash(python3 -c \"import ollama; print\\('ollama OK'\\)\")",
+      "Bash(python3 -m app.pipeline.token_auditor)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(python3 -m streamlit run app/main.py --server.headless true --server.port 8501)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8501)"
+    ]
+  }
+}
