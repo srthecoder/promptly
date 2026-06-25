@@ -21,7 +21,7 @@ def _try_ollama(prompt: str, system: str) -> str | None:
             model=OLLAMA_MODEL,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user",   "content": prompt},
+                {"role": "user",   "content": f"Rewrite this draft prompt:\n\n{prompt}"},
             ],
             options={"temperature": 0.1},
         )
@@ -41,7 +41,7 @@ def _try_groq(prompt: str, system: str) -> str | None:
             model=GROQ_MODEL,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user",   "content": prompt},
+                {"role": "user",   "content": f"Rewrite this draft prompt:\n\n{prompt}"},
             ],
             temperature=0.1,
         )
@@ -61,7 +61,7 @@ def _try_gemini(prompt: str, system: str) -> str | None:
             model_name=GEMINI_MODEL,
             system_instruction=system,
         )
-        response = model.generate_content(prompt)
+        response = model.generate_content(f"Rewrite this draft prompt:\n\n{prompt}")
         return response.text
     except Exception:
         return None

@@ -81,7 +81,7 @@ async function callGroq(prompt, mode, apiKey) {
       temperature: 0.1,
       messages: [
         { role: "system", content: system },
-        { role: "user",   content: prompt }
+        { role: "user",   content: `Rewrite this draft prompt:\n\n${prompt}` }
       ]
     })
   });

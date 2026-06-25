@@ -4,7 +4,12 @@
   "version": "1.0.0",
   "description": "Optimize prompts before you send them — free, instant.",
   "permissions": ["activeTab", "storage", "scripting"],
-  "host_permissions": ["https://api.groq.com/*"],
+  "host_permissions": [
+    "https://api.groq.com/*",
+    "https://claude.ai/*",
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
