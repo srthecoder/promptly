@@ -6,7 +6,7 @@
  */
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL    = "llama-3.1-8b-instant";
+const GROQ_MODEL    = "llama-3.3-70b-versatile";
 
 const REWRITER_PREFIX = `You are a prompt rewriter, not an assistant.
 The user's input is a DRAFT PROMPT they want to send to another LLM. Your ONLY job is to rewrite that draft into a better, clearer, more efficient version of the same prompt.
