@@ -18,7 +18,12 @@
       "Bash(python3 -m http.server 3001)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/popup.html)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(command -v sharp)",
+      "Bash(command -v convert)",
+      "Bash(python3 -c \"import PIL\")",
+      "Bash(node -e \"require\\('sharp'\\)\")",
+      "Bash(node -e \"require\\('jimp'\\)\")"
     ]
   }
 }
