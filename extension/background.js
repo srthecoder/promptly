@@ -8,40 +8,49 @@
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL    = "llama-3.1-8b-instant";
 
-const SYSTEM_PROMPTS = {
-  cost_min: `You are a prompt token optimizer. Rewrite the user's input as the most token-efficient version possible while preserving 100% of the logical intent.
+const REWRITER_PREFIX = `You are a prompt rewriter, not an assistant.
+The user's input is a DRAFT PROMPT they want to send to another LLM. Your ONLY job is to rewrite that draft into a better, clearer, more efficient version of the same prompt.
 
-Rules:
+DO NOT answer the question.
+DO NOT generate code, analysis, or any content.
+DO NOT add labels like 'Rewritten Prompt:'.
+DO NOT wrap output in quotes.
+ONLY output the rewritten prompt, then on the last line:
+EXPLANATION: <one sentence on what changed>
+
+NEVER remove code blocks, variable names, schemas, or technical specifications — preserve them verbatim.`;
+
+const SYSTEM_PROMPTS = {
+  cost_min: `${REWRITER_PREFIX}
+
+Strategy — Cost Minimizer:
 - Remove filler, hedging, repetition, conversational padding
 - Collapse verbose phrasing to direct, dense language
-- Never change the core meaning or intent
-- Never add explanations or preamble
-- Output ONLY the rewritten prompt, then on a new line:
-EXPLANATION: <one sentence describing the key changes made>`,
+- Preserve 100% of the logical intent and all technical details`,
 
-  concise: `You are a prompt clarity optimizer. Rewrite the user's prompt so that:
-1. The core question is immediately clear in the first sentence
-2. A brevity constraint is added (e.g. "Answer in 3 sentences or fewer")
-3. All conversational padding, hedging, and filler is removed
+  concise: `${REWRITER_PREFIX}
 
-Output ONLY the rewritten prompt, then:
-EXPLANATION: <one sentence on what changed>`,
+Strategy — Concise Answer:
+- Make the core question clear in the first sentence
+- Add a brevity constraint (e.g. "Answer in 3 sentences or fewer")
+- Strip all conversational padding, hedging, and filler`,
 
-  deep_research: `You are a research prompt architect. Rewrite the user's prompt so it produces a comprehensive, well-structured answer in a single LLM response.
+  deep_research: `${REWRITER_PREFIX}
 
-Add: explicit scope, requested output format, depth signal ("be thorough", "include tradeoffs").
-Remove: filler, repetition, padding.
+Strategy — Deep Research:
+- Add explicit scope (what to cover and what to exclude)
+- Add requested output format (sections, headers, bullets as appropriate)
+- Add depth signals: "be thorough", "include tradeoffs", "cite reasoning"
+- The rewritten prompt may be longer than the original if the original was vague — that is intentional`,
 
-Output ONLY the rewritten prompt, then:
-EXPLANATION: <one sentence on what was added/changed>`,
+  code_gen: `${REWRITER_PREFIX}
 
-  code_gen: `You are a code prompt optimizer. Rewrite the user's coding request so it produces correct, runnable code in a single LLM response.
-
-Add: programming language (infer if possible), input/output spec, edge cases, output format.
-Remove: filler, vague language.
-
-Output ONLY the rewritten prompt, then:
-EXPLANATION: <one sentence on what constraints were added>`
+Strategy — Code Generation:
+- Infer and specify the programming language if not stated
+- Add input/output specification
+- Add edge cases to handle if relevant (empty input, nulls, errors)
+- Add output format instruction ("return only code, no explanation" or "include inline comments")
+- NEVER write, fix, or complete the code — only improve the prompt asking for it`
 };
 
 function estimateTokens(text) {
