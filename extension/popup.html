@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Promptly</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      background: #0f0f11;
+      color: #e8e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      padding: 0 0 16px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #1e1e2a;
+    }
+    .logo {
+      font-size: 15px;
+      font-weight: 700;
+      color: #7c6af7;
+      letter-spacing: -.3px;
+      flex: 1;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #444;
+      flex-shrink: 0;
+    }
+    .status-dot.ok  { background: #4caf7d; }
+    .status-dot.err { background: #e05c5c; }
+    .status-label {
+      font-size: 11px;
+      color: #666678;
+    }
+
+    /* ── Body ── */
+    .body { padding: 16px; }
+
+    .field { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: #666678;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+
+    input[type="password"],
+    select {
+      width: 100%;
+      background: #1a1a1f;
+      border: 1px solid #2a2a32;
+      border-radius: 8px;
+      color: #e8e8f0;
+      font-size: 13px;
+      padding: 8px 11px;
+      outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    input[type="password"]:focus,
+    select:focus { border-color: #7c6af7; }
+
+    select { cursor: pointer; }
+
+    .row-inline {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .row-inline input { flex: 1; }
+
+    .btn-save {
+      padding: 0 16px;
+      background: #7c6af7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .12s;
+      white-space: nowrap;
+    }
+    .btn-save:hover { background: #9585ff; }
+
+    .save-feedback {
+      font-size: 11px;
+      color: #4caf7d;
+      margin-top: 6px;
+      min-height: 16px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .save-feedback.show { opacity: 1; }
+
+    /* ── Footer link ── */
+    .footer {
+      padding: 0 16px;
+      margin-top: 2px;
+    }
+    .footer a {
+      font-size: 11px;
+      color: #7c6af7;
+      text-decoration: none;
+    }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ── Shortcut hint ── */
+    .hint {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #1a1a1f;
+      border: 1px solid #2a2a32;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #666678;
+      line-height: 1.5;
+    }
+    .hint kbd {
+      display: inline-block;
+      background: #2a2a3d;
+      border: 1px solid #3a3a50;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 10px;
+      color: #c8c8e0;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">⚡ Promptly</div>
+    <div class="status-dot" id="status-dot"></div>
+    <div class="status-label" id="status-label">no key</div>
+  </div>
+
+  <div class="body">
+    <div class="field">
+      <label>Groq API key</label>
+      <div class="row-inline">
+        <input type="password" id="api-key" placeholder="gsk_…" autocomplete="off" />
+        <button class="btn-save" id="save-btn">Save</button>
+      </div>
+      <div class="save-feedback" id="save-feedback">Saved ✓</div>
+    </div>
+
+    <div class="field">
+      <label>Default mode</label>
+      <select id="mode-select">
+        <option value="cost_min">💰 Cost Minimizer</option>
+        <option value="concise">⚡ Concise Answer</option>
+        <option value="deep_research">🔬 Deep Research</option>
+        <option value="code_gen">💻 Code Generation</option>
+      </select>
+    </div>
+
+    <div class="hint">
+      Press <kbd>Ctrl+Shift+P</kbd> (<kbd>⌘⇧P</kbd> on Mac) on any supported
+      page to optimize the current prompt.
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://console.groq.com" target="_blank">Get free key → console.groq.com</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

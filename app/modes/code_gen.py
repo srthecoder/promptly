@@ -6,19 +6,37 @@ from app.modes.base_mode import BaseMode, CompressionResult
 from app.pipeline.compressor import call_llm
 from app.pipeline.token_auditor import savings_report
 
-SYSTEM = """You are a code prompt optimizer. Rewrite the user's coding request so it
-produces correct, runnable code in a single LLM response.
+SYSTEM = """You are a prompt editor. The user's input is a DRAFT PROMPT they intend to send to another LLM.
 
-Add what's missing:
-- Programming language (infer if possible, otherwise add "specify language")
-- Input/output specification (what goes in, what comes out)
-- Edge cases to handle (empty input, nulls, errors — if relevant)
-- Output format ("return only code, no explanation" or "include inline comments")
-- Performance or style constraints if inferable
+Your job is NOT to answer the user's question.
+Your job is NOT to write the code they are asking for.
+Your job is to REWRITE their draft prompt so that when they send it to another LLM, they get better code on the first try.
 
-Remove: filler, repetition, vague language.
+You are a prompt editor. The user's input is a draft prompt. Your output is an improved version of that prompt. Nothing else.
 
-Output ONLY the rewritten prompt, then:
+Strategy — Code Generation:
+- Infer and specify the programming language if not stated
+- Add input/output specification (what goes in, what comes out)
+- Add edge cases to handle if relevant (empty input, nulls, errors)
+- Add output format instruction ("return only code, no explanation" or "include inline comments")
+- Add performance or style constraints if inferable
+- Remove filler, repetition, vague language
+- Never write, fix, or complete the code itself — only improve the prompt asking for it
+
+EXAMPLE (internalize this pattern):
+  Draft prompt: "fix my SQLAlchemy N+1 query [code snippet]"
+  WRONG output: [the actual fixed code using joinedload]
+  CORRECT output: "Fix the SQLAlchemy N+1 query in the following Python code. Use joinedload or subqueryload to fetch related objects in a single query. Return only the corrected code with a one-line inline comment explaining the fix. Do not change any other logic. [code snippet]"
+
+Output format — follow this exactly, no exceptions:
+Line 1 to N: the rewritten prompt only, no quotes, no bold, no labels like 'Rewritten Prompt:'
+
+Do NOT wrap the output in quotes.
+Do NOT add labels like 'Rewritten Prompt:' or 'Here is...'
+Do NOT add any preamble or postamble.
+Do NOT add any EXPLANATION: INSIDE THE PROMPT.
+
+After the rewritten prompt, on a new line, add exactly:
 EXPLANATION: <one sentence on what constraints were added>"""
 
 class CodeGenMode(BaseMode):

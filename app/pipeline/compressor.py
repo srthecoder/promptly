@@ -2,6 +2,7 @@
 Central LLM router. Tries backends in order: Ollama → Groq → Gemini.
 This is the ONLY file that talks to LLMs directly.
 """
+from __future__ import annotations
 import os
 import requests
 from app.config import (
@@ -94,8 +95,11 @@ def get_backend_status() -> BackendStatus:
     """Check which backend is available. Used for UI status indicator."""
     try:
         import ollama
-        ollama.list()
-        return BackendStatus("ollama", OLLAMA_MODEL, True, f"Running locally ({OLLAMA_MODEL})")
+        models = ollama.list()
+        names = [m.model for m in models.models]
+        # Accept both "llama3.2" and "llama3.2:latest"
+        if any(n == OLLAMA_MODEL or n.startswith(OLLAMA_MODEL + ":") for n in names):
+            return BackendStatus("ollama", OLLAMA_MODEL, True, f"Running locally ({OLLAMA_MODEL})")
     except Exception:
         pass
 

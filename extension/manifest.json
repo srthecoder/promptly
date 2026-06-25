@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Promptly",
+  "version": "1.0.0",
+  "description": "Optimize prompts before you send them — free, instant.",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": ["https://api.groq.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Promptly"
+  },
+  "commands": {
+    "_execute_action": {
+      "description": "Open Promptly popup"
+    },
+    "optimize-prompt": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Optimize the current prompt in place"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://claude.ai/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["overlay.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

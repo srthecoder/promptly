@@ -1,6 +1,10 @@
 """
 Prompt Optimizer — Main Streamlit App
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
 from app.config import MODES, COST_TABLE, DEFAULT_TARGET_MODEL
 from app.pipeline.cleaner import clean

@@ -1,0 +1,154 @@
+/* styles.css — injected into every page for the overlay button and result panel */
+
+:root {
+  --p-accent:  #7c6af7;
+  --p-bg:      #0f0f11;
+  --p-surface: #1a1a1f;
+  --p-border:  #2a2a32;
+  --p-text:    #e8e8f0;
+  --p-muted:   #888899;
+  --p-success: #4caf7d;
+  --p-error:   #e05c5c;
+  --p-radius:  10px;
+  --p-shadow:  0 8px 32px rgba(0,0,0,.55);
+}
+
+/* ── Overlay button ─────────────────────────────────────────────────────────── */
+#promptly-btn.promptly-overlay-btn {
+  position: absolute;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px 5px 9px;
+  background: var(--p-accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(124,106,247,.45);
+  transition: background .15s, transform .1s, box-shadow .15s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+#promptly-btn.promptly-overlay-btn:hover {
+  background: #9585ff;
+  box-shadow: 0 4px 16px rgba(124,106,247,.6);
+}
+
+#promptly-btn.promptly-overlay-btn:active {
+  transform: scale(.97);
+}
+
+#promptly-btn.promptly-loading {
+  background: #555;
+  cursor: wait;
+}
+
+.promptly-icon { font-size: 13px; line-height: 1; }
+.promptly-label { line-height: 1; }
+
+/* ── Result panel ───────────────────────────────────────────────────────────── */
+#promptly-panel.promptly-panel {
+  position: absolute;
+  z-index: 2147483647;
+  display: none;
+  width: 420px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
+  box-shadow: var(--p-shadow);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: var(--p-text);
+  overflow: hidden;
+}
+
+.promptly-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--p-bg);
+  border-bottom: 1px solid var(--p-border);
+}
+
+.promptly-panel-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--p-accent);
+}
+
+.promptly-panel-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.promptly-action-btn {
+  padding: 4px 11px;
+  border: 1px solid var(--p-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--p-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s;
+}
+.promptly-action-btn:hover { background: var(--p-border); }
+
+.promptly-action-copy {
+  background: var(--p-accent);
+  border-color: var(--p-accent);
+  color: #fff;
+}
+.promptly-action-copy:hover { background: #9585ff; border-color: #9585ff; }
+
+.promptly-close-btn {
+  background: none;
+  border: none;
+  color: var(--p-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color .12s;
+}
+.promptly-close-btn:hover { color: var(--p-text); }
+
+.promptly-panel-body {
+  padding: 12px 14px;
+}
+
+.promptly-stats {
+  font-size: 11px;
+  color: var(--p-muted);
+  margin-bottom: 8px;
+}
+
+.promptly-result-text {
+  background: var(--p-bg);
+  border: 1px solid var(--p-border);
+  border-radius: 7px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--p-text);
+}
+
+.promptly-explanation {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--p-muted);
+  line-height: 1.4;
+}

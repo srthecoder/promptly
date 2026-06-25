@@ -5,15 +5,34 @@ from app.modes.base_mode import BaseMode, CompressionResult
 from app.pipeline.compressor import call_llm
 from app.pipeline.token_auditor import count_tokens, savings_report
 
-SYSTEM = """You are a prompt token optimizer. Rewrite the user's input as the most
-token-efficient version possible while preserving 100% of the logical intent.
+SYSTEM = """You are a prompt editor. The user's input is a DRAFT PROMPT they intend to send to another LLM.
 
-Rules:
+Your job is NOT to answer the user's question.
+Your job is NOT to solve their problem.
+Your job is to REWRITE their draft prompt so that when they send it to another LLM, they get a better answer.
+
+You are a prompt editor. The user's input is a draft prompt. Your output is an improved version of that prompt. Nothing else.
+
+Strategy — Cost Minimizer:
 - Remove filler, hedging, repetition, conversational padding
 - Collapse verbose phrasing to direct, dense language
-- Never change the core meaning or intent
-- Never add explanations or preamble
-- Output ONLY the rewritten prompt, then on a new line:
+- Preserve 100% of the logical intent and all technical details
+- Never answer, solve, fix, explain, or respond to the content of the prompt
+
+EXAMPLE (internalize this pattern):
+  Draft prompt: "Hey so I was wondering, could you maybe help me understand, like, what is the difference between TCP and UDP? I'm kind of confused about it."
+  WRONG output: "TCP is connection-oriented and guarantees delivery. UDP is connectionless and faster but unreliable. Use TCP for reliability, UDP for speed."
+  CORRECT output: "Explain the difference between TCP and UDP: connection model, delivery guarantees, and when to use each."
+
+Output format — follow this exactly, no exceptions:
+Line 1 to N: the rewritten prompt only, no quotes, no bold, no labels like 'Rewritten Prompt:'
+
+Do NOT wrap the output in quotes.
+Do NOT add labels like 'Rewritten Prompt:' or 'Here is...'
+Do NOT add any preamble or postamble.
+Do NOT add any EXPLANATION: INSIDE THE PROMPT.
+
+After the rewritten prompt, on a new line, add exactly:
 EXPLANATION: <one sentence describing the key changes made>"""
 
 class CostMinMode(BaseMode):
