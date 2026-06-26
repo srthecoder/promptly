@@ -5,10 +5,12 @@
   "description": "Optimize prompts before you send them — free, instant.",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": [
-    "https://api.groq.com/*",
     "https://claude.ai/*",
     "https://chat.openai.com/*",
-    "https://gemini.google.com/*"
+    "https://*.chatgpt.com/*",
+    "https://gemini.google.com/*",
+    "https://copilot.microsoft.com/*",
+    "https://api.groq.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -43,8 +45,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://claude.ai/*", "https://chat.openai.com/*", "https://gemini.google.com/*"],
-      "js": ["content.js", "overlay.js"],
+      "matches": ["https://claude.ai/*", "https://chat.openai.com/*", "https://*.chatgpt.com/*", "https://gemini.google.com/*", "https://copilot.microsoft.com/*"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ]

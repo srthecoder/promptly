@@ -7,18 +7,19 @@ window.PromptlyOverlay = (() => {
   let card = null;
 
   // ── Design tokens ────────────────────────────────────────────────────────────
-  const CORAL       = "#FF6B6B";
-  const CORAL_DARK  = "#e85555";
-  const CORAL_LIGHT = "rgba(255,107,107,0.12)";
+  const CORAL       = "#D85A30";
+  const CORAL_DARK  = "#bf4e27";
+  const CORAL_LIGHT = "rgba(216,90,48,0.12)";
 
-  // ── Logo SVG: white chat bubble on coral bg ──────────────────────────────────
-  const LOGO_SVG = `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="28" height="28" rx="7" fill="${CORAL}"/>
-    <path d="M7 8.5C7 7.67 7.67 7 8.5 7H19.5C20.33 7 21 7.67 21 8.5V16.5C21 17.33 20.33 18 19.5 18H15.5L12 21.5V18H8.5C7.67 18 7 17.33 7 16.5V8.5Z" fill="white"/>
-    <circle cx="11" cy="12.5" r="1.2" fill="${CORAL}"/>
-    <circle cx="14" cy="12.5" r="1.2" fill="${CORAL}"/>
-    <circle cx="17" cy="12.5" r="1.2" fill="${CORAL}"/>
-  </svg>`;
+  // ── Logo mark: coral bubble on coral bg square ───────────────────────────────
+  const LOGO_SVG = `<div style="width:32px;height:32px;border-radius:9px;background:#D85A30;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+      <rect x="0.5" y="0.5" width="17" height="12" rx="3" fill="white" fill-opacity="0.95"/>
+      <circle cx="6" cy="6.5" r="1.6" fill="#D85A30"/>
+      <circle cx="12" cy="6.5" r="1.6" fill="#D85A30"/>
+      <path d="M4.5 14.5l3.5-2h5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>`;
 
   const STYLES = `
     #promptly-overlay,
@@ -86,14 +87,14 @@ window.PromptlyOverlay = (() => {
       font-size: 11px;
       font-weight: 700;
       color: #fff;
-      background: rgba(255,255,255,0.22);
-      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
       border-radius: 20px;
       padding: 3px 10px;
     }
 
     #promptly-overlay .p-close {
-      background: rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.2);
       border: 1px solid rgba(255,255,255,0.3);
       color: #fff;
       font-size: 14px;
@@ -113,13 +114,13 @@ window.PromptlyOverlay = (() => {
     /* ── Metrics row ── */
     #promptly-overlay .p-metrics {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, 1fr) 1.25fr;
       gap: 0;
       border-bottom: 1px solid rgba(0,0,0,.07);
     }
 
     #promptly-overlay .p-metric {
-      padding: 10px 14px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -144,6 +145,22 @@ window.PromptlyOverlay = (() => {
 
     #promptly-overlay .p-metric-value.savings {
       color: ${CORAL};
+    }
+
+    #promptly-overlay .p-metric.real-savings {
+      background: rgba(216,90,48,0.05);
+    }
+    #promptly-overlay .p-metric.real-savings .p-metric-label {
+      color: ${CORAL};
+    }
+    #promptly-overlay .p-metric.real-savings .p-metric-value {
+      font-size: 18px;
+      color: ${CORAL};
+    }
+    #promptly-overlay .p-metric-sub {
+      font-size: 9px;
+      color: #aaa;
+      margin-top: 1px;
     }
 
     /* ── Diff panels ── */
@@ -289,6 +306,55 @@ window.PromptlyOverlay = (() => {
       animation: p-spin .7s linear infinite;
       flex-shrink: 0;
     }
+
+    /* ── Image row ── */
+    #promptly-overlay .p-image-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(216,90,48,0.05);
+      border-bottom: 1px solid rgba(216,90,48,0.12);
+      flex-wrap: wrap;
+    }
+
+    #promptly-overlay .p-image-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    #promptly-overlay .p-image-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #aaa;
+    }
+
+    #promptly-overlay .p-image-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    #promptly-overlay .p-image-arrow {
+      font-size: 14px;
+      color: #D85A30;
+      font-weight: 700;
+    }
+
+    #promptly-overlay .p-image-saved {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      color: #D85A30;
+      background: rgba(216,90,48,0.1);
+      border: 1px solid rgba(216,90,48,0.2);
+      border-radius: 20px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
   `;
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -322,7 +388,7 @@ window.PromptlyOverlay = (() => {
     card.id = "promptly-overlay";
     card.innerHTML = `
       <div class="p-header">
-        <img src="${chrome.runtime.getURL('icon48.png')}" width="28" height="28" style="border-radius:7px;margin-right:8px;flex-shrink:0;">
+        ${LOGO_SVG}
         <span class="p-wordmark">Promptly</span>
         <span class="p-mode-badge">${escHtml(modeName)}</span>
         <button class="p-close" id="p-close-btn">✕</button>
@@ -337,7 +403,7 @@ window.PromptlyOverlay = (() => {
   }
 
   // ── Result ───────────────────────────────────────────────────────────────────
-  function showResult({ original, optimized, explanation, tokensBefore, tokensAfter, modeName, onUse }) {
+  function showResult({ original, optimized, explanation, tokensBefore, tokensAfter, modeName, imageInfo = null, onUse }) {
     injectStyles();
     remove();
 
@@ -351,18 +417,39 @@ window.PromptlyOverlay = (() => {
         ? "↑ expanded"
         : "restructured";
 
-    // Rough cost estimate: assume claude-sonnet $3/MTok input
-    const costSaved = tokensBefore > tokensAfter
-      ? `$${(((tokensBefore - tokensAfter) / 1_000_000) * 3).toFixed(5)}`
+    // Cost estimates using claude-sonnet $3/MTok input
+    const COST_PER_TOKEN = 3.0 / 1_000_000;
+    const promptSaving   = Math.max(0, tokensBefore - tokensAfter) * COST_PER_TOKEN;
+    const costSaved      = promptSaving > 0
+      ? `$${promptSaving.toFixed(5)}`
       : "$0.00000";
 
-    const turnsSaved = savedPct >= 30 ? "~2" : savedPct >= 10 ? "~1" : "0";
+    const turnsNum  = savedPct >= 30 ? 2 : savedPct >= 10 ? 1 : 0;
+    const turnsSaved = turnsNum > 0 ? `~${turnsNum}` : "0";
+    const totalSaved = promptSaving + promptSaving * turnsNum;
+    const realSavings = `$${totalSaved.toFixed(5)}`;
+
+    const imageRow = imageInfo ? `
+      <div class="p-image-row">
+        <div class="p-image-col">
+          <span class="p-image-label">Original image</span>
+          <span class="p-image-val">${imageInfo.original.w}×${imageInfo.original.h} = ~${imageInfo.tokensOriginal} tokens</span>
+        </div>
+        <div class="p-image-arrow">→</div>
+        <div class="p-image-col">
+          <span class="p-image-label">Resized (50%)</span>
+          <span class="p-image-val">${imageInfo.resized.w}×${imageInfo.resized.h} = ~${imageInfo.tokensResized} tokens</span>
+        </div>
+        <div class="p-image-saved">
+          🖼 ${imageInfo.tokensOriginal - imageInfo.tokensResized} image tokens saved
+        </div>
+      </div>` : "";
 
     card = document.createElement("div");
     card.id = "promptly-overlay";
     card.innerHTML = `
       <div class="p-header">
-        <img src="${chrome.runtime.getURL('icon48.png')}" width="28" height="28" style="border-radius:7px;margin-right:8px;flex-shrink:0;">
+        ${LOGO_SVG}
         <span class="p-wordmark">Promptly</span>
         <span class="p-mode-badge">${escHtml(modeName)}</span>
         <span class="p-savings-pill">${savingsPill}</span>
@@ -386,7 +473,14 @@ window.PromptlyOverlay = (() => {
           <div class="p-metric-label">Turns Saved</div>
           <div class="p-metric-value savings">${turnsSaved}</div>
         </div>
+        <div class="p-metric real-savings">
+          <div class="p-metric-label">Real Savings</div>
+          <div class="p-metric-value">${realSavings}</div>
+          <div class="p-metric-sub">incl. avoided context</div>
+        </div>
       </div>
+
+      ${imageRow}
 
       <div class="p-panels">
         <div class="p-panel">

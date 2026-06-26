@@ -50,7 +50,8 @@ Strategy — Code Generation:
 - Add input/output specification
 - Add edge cases to handle if relevant (empty input, nulls, errors)
 - Add output format instruction ("return only code, no explanation" or "include inline comments")
-- NEVER write, fix, or complete the code — only improve the prompt asking for it`
+- NEVER write, fix, or complete the code — only improve the prompt asking for it`,
+
 };
 
 function estimateTokens(text) {
@@ -109,6 +110,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
     const mode = msg.mode ?? stored.defaultMode ?? "cost_min";
 
+    const wordCount = msg.prompt.trim().split(/\s+/).length;
+    if (wordCount < 15) {
+      sendResponse({
+        ok: true,
+        optimized:    msg.prompt,
+        explanation:  "Prompt is already concise — no compression needed.",
+        tokensBefore: estimateTokens(msg.prompt),
+        tokensAfter:  estimateTokens(msg.prompt)
+      });
+      return;
+    }
+
     try {
       const { optimized, explanation } = await callGroq(msg.prompt, mode, apiKey);
       sendResponse({
@@ -136,11 +149,6 @@ chrome.commands.onCommand.addListener(async (command) => {
   try {
     await chrome.tabs.sendMessage(tab.id, { action: "optimize" });
   } catch (err) {
-    // content script not ready — inject it manually then retry
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["overlay.js"] });
-    setTimeout(() => {
-      chrome.tabs.sendMessage(tab.id, { action: "optimize" });
-    }, 500);
+    console.warn('Promptly: could not reach content script', err);
   }
 });
