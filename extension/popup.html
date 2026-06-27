@@ -22,11 +22,6 @@
       padding: 13px 16px;
       background: #D85A30;
     }
-    .logo-svg {
-      flex-shrink: 0;
-      width: 22px;
-      height: 22px;
-    }
     .header-title {
       font-size: 15px;
       font-weight: 600;
@@ -66,8 +61,7 @@
       margin-bottom: 5px;
     }
 
-    input[type="password"],
-    select {
+    input[type="password"] {
       width: 100%;
       background: #fff;
       border: 1px solid rgba(216,90,48,0.3);
@@ -79,12 +73,10 @@
       outline: none;
       transition: border-color .15s, box-shadow .15s;
     }
-    input[type="password"]:focus,
-    select:focus {
+    input[type="password"]:focus {
       border-color: #D85A30;
       box-shadow: 0 0 0 3px rgba(216,90,48,0.12);
     }
-    select { cursor: pointer; }
 
     .row-inline {
       display: flex;
@@ -167,36 +159,17 @@
     </div>
     <span class="header-title">Promptly</span>
     <div class="status-dot" id="status-dot"></div>
-    <span class="status-label" id="status-label">no key</span>
+    <span class="status-label" id="server-status">checking…</span>
   </div>
 
   <div class="body">
-    <div class="field">
-      <label>Groq API key</label>
-      <div class="row-inline">
-        <input type="password" id="api-key" placeholder="gsk_…" autocomplete="off" />
-        <button class="btn-save" id="save-btn">Save</button>
-      </div>
-      <div class="save-feedback" id="save-feedback">Saved ✓</div>
-    </div>
-
-    <div class="field">
-      <label>Default mode</label>
-      <select id="mode-select">
-        <option value="cost_min">💰 Cost Minimizer</option>
-        <option value="concise">⚡ Concise Answer</option>
-        <option value="deep_research">🔬 Deep Research</option>
-        <option value="code_gen">💻 Code Generation</option>
-      </select>
-    </div>
-
     <div class="hint">
-      Press <kbd>⌘⇧P</kbd> on Claude or ChatGPT to optimize the current prompt.
+      Press <kbd>⌘⇧P</kbd> on Claude, ChatGPT, or Gemini to restructure the current prompt into a token-efficient format.
     </div>
   </div>
 
   <div class="footer">
-    <a href="https://console.groq.com" target="_blank">Get free key → console.groq.com</a>
+    <a href="https://github.com/anthropics/promptly" target="_blank">github.com/anthropics/promptly</a>
   </div>
 
   <script src="popup.js"></script>

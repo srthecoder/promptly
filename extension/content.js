@@ -1,43 +1,37 @@
 /**
  * content.js — Injected on claude.ai, chat.openai.com, gemini.google.com, copilot.microsoft.com.
- * Finds the active textarea, listens for the optimize-prompt command forwarded
- * from background.js, and drives the FAB panel (no separate overlay).
+ * Single strategy: RESTRUCTURE. Drives the FAB panel; no separate overlay.
  */
 
-// ── Double-injection guard ────────────────────────────────────────────────────
-if (window.__promptlyLoaded) {
-  throw new Error('Promptly already loaded');
-}
+if (window.__promptlyLoaded) throw new Error('Promptly already loaded');
 window.__promptlyLoaded = true;
 
 console.log('[Promptly] content.js loaded on:', window.location.hostname);
 
-// ── Stats tracking ────────────────────────────────────────────────────────────
+// ── Stats ─────────────────────────────────────────────────────────────────────
 const COST_PER_TOKEN_GLOBAL = 3.0 / 1_000_000;
 
 const DEFAULT_STATS = {
-  totalOptimizations: 0,
-  totalTokensSaved:   0,
-  totalCostSaved:     0.0,
-  bestCompression:    0,
+  totalOptimizations:   0,
+  totalTokensSaved:     0,
+  totalCostSaved:       0.0,
+  bestCompression:      0,
   sessionOptimizations: 0,
   sessionTokensSaved:   0,
-  modeUsage: { cost_min: 0, concise: 0, deep_research: 0, code_gen: 0 },
-  avgPromptLength:     0,
-  avgCompressedLength: 0,
-  lastUpdated:         null
+  avgPromptLength:      0,
+  avgCompressedLength:  0,
+  lastUpdated:          null
 };
 
-function recordOptimization(tokensBefore, tokensAfter, mode) {
-  const saved  = Math.max(0, tokensBefore - tokensAfter);
-  const cost   = saved * COST_PER_TOKEN_GLOBAL;
-  const pct    = tokensBefore > 0 ? Math.round((saved / tokensBefore) * 100) : 0;
-  const today  = new Date().toDateString();
+function recordOptimization(tokensBefore, tokensAfter) {
+  const saved = Math.max(0, tokensBefore - tokensAfter);
+  const cost  = saved * COST_PER_TOKEN_GLOBAL;
+  const pct   = tokensBefore > 0 ? Math.round((saved / tokensBefore) * 100) : 0;
+  const today = new Date().toDateString();
 
   chrome.storage.local.get(['promptlyStats'], (data) => {
     const s = data.promptlyStats ? { ...DEFAULT_STATS, ...data.promptlyStats } : { ...DEFAULT_STATS };
 
-    // Reset "today" counters when the date changes
     if (s.lastUpdated !== today) {
       s.sessionOptimizations = 0;
       s.sessionTokensSaved   = 0;
@@ -46,13 +40,10 @@ function recordOptimization(tokensBefore, tokensAfter, mode) {
     s.totalOptimizations++;
     s.totalTokensSaved   += saved;
     s.totalCostSaved     += cost;
-    s.bestCompression    = Math.max(s.bestCompression, pct);
+    s.bestCompression     = Math.max(s.bestCompression, pct);
     s.sessionOptimizations++;
     s.sessionTokensSaved += saved;
-    if (!s.modeUsage) s.modeUsage = { ...DEFAULT_STATS.modeUsage };
-    s.modeUsage[mode]    = (s.modeUsage[mode] || 0) + 1;
 
-    // Running averages for prompt length
     const n = s.totalOptimizations;
     s.avgPromptLength     = Math.round((s.avgPromptLength     * (n - 1) + tokensBefore) / n);
     s.avgCompressedLength = Math.round((s.avgCompressedLength * (n - 1) + tokensAfter)  / n);
@@ -72,14 +63,12 @@ const getPromptText = () => {
          document.querySelector('div[contenteditable="true"]');
     return el ? (el.innerText || el.textContent || '').trim() : '';
   }
-
   if (host.includes('gemini.google.com')) {
     el = document.querySelector('.ql-editor') ||
          document.querySelector('rich-textarea') ||
          document.querySelector('div[contenteditable="true"]');
     return el ? (el.innerText || el.textContent || '').trim() : '';
   }
-
   el = document.querySelector('div[contenteditable="true"]');
   return el ? (el.innerText || el.textContent || '').trim() : '';
 };
@@ -99,21 +88,12 @@ const replacePromptText = (newText) => {
   }
 
   if (!el) return false;
-
   el.focus();
   document.execCommand('selectAll', false, null);
   document.execCommand('insertText', false, newText);
   el.dispatchEvent(new Event('input',  { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
-
   return true;
-};
-
-const MODE_LABELS = {
-  cost_min:      "Cost Minimizer",
-  concise:       "Concise Answer",
-  deep_research: "Deep Research",
-  code_gen:      "Code Generation"
 };
 
 // ── Wait for prompt element ───────────────────────────────────────────────────
@@ -139,31 +119,17 @@ const IMG_ATTACH_SELECTORS = [
 
 function getMessageCount() {
   const host = window.location.hostname;
-
-  if (host.includes('claude.ai')) {
-    return document.querySelectorAll(
-      '[data-testid="human-turn"], .human-turn, div[class*="human"]'
-    ).length;
-  }
-  if (host.includes('openai.com') || host.includes('chatgpt.com')) {
+  if (host.includes('claude.ai'))
+    return document.querySelectorAll('[data-testid="human-turn"], .human-turn, div[class*="human"]').length;
+  if (host.includes('openai.com') || host.includes('chatgpt.com'))
     return document.querySelectorAll('[data-message-author-role="user"]').length;
-  }
-  if (host.includes('gemini.google.com')) {
+  if (host.includes('gemini.google.com'))
     return document.querySelectorAll('.user-query, user-query, [class*="user-message"]').length;
-  }
   return 0;
 }
 
 function hasImageAttachment() {
   return IMG_ATTACH_SELECTORS.some(sel => !!document.querySelector(sel));
-}
-
-// ── Code pattern detection ────────────────────────────────────────────────────
-const CODE_PATTERNS = /```|function\s+\w+|const\s+\w+\s*=|def\s+\w+|class\s+\w+[\s:{]|import\s+\w|#include|SELECT\s+\w|CREATE\s+TABLE/i;
-
-function detectMode(text, userMode) {
-  if (CODE_PATTERNS.test(text)) return 'code_gen';
-  return userMode;
 }
 
 // ── Image compression ─────────────────────────────────────────────────────────
@@ -196,7 +162,6 @@ const compressImage = (file, mode = 'photo') => new Promise(resolve => {
 const insertCompressedFile = async (file) => {
   const host = window.location.hostname;
 
-  // Gemini-specific: needs Object.defineProperty + click
   if (host.includes('gemini.google.com')) {
     const inputs = document.querySelectorAll('input[type="file"]');
     for (const input of inputs) {
@@ -216,7 +181,6 @@ const insertCompressedFile = async (file) => {
     return 'download';
   }
 
-  // Strategy 1: direct file input
   const inputs = document.querySelectorAll('input[type="file"]');
   for (const input of inputs) {
     if (input.id === 'p-file-input') continue;
@@ -230,7 +194,6 @@ const insertCompressedFile = async (file) => {
     } catch (e) { continue; }
   }
 
-  // Strategy 2: drag-and-drop simulation
   const dropZones = ['[contenteditable="true"]', '#prompt-textarea', 'main', 'body'];
   for (const sel of dropZones) {
     const zone = document.querySelector(sel);
@@ -245,7 +208,6 @@ const insertCompressedFile = async (file) => {
     } catch (e) { continue; }
   }
 
-  // Strategy 3: clipboard paste
   const target = document.querySelector('[contenteditable="true"], textarea');
   if (target) {
     target.focus();
@@ -255,7 +217,6 @@ const insertCompressedFile = async (file) => {
     return 'clipboard';
   }
 
-  // Strategy 4: download fallback
   const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url; a.download = file.name; a.click();
@@ -265,7 +226,7 @@ const insertCompressedFile = async (file) => {
 
 // ── FAB + Panel ───────────────────────────────────────────────────────────────
 function createFAB() {
-  console.log('[Promptly] injectFAB called');
+  console.log('[Promptly] createFAB called');
   if (document.getElementById('promptly-fab')) return;
 
   const style = document.createElement('style');
@@ -282,21 +243,15 @@ function createFAB() {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    /* ── Bubble ── */
     #promptly-bubble {
-      width: 48px;
-      height: 48px;
+      width: 48px; height: 48px;
       border-radius: 50%;
       background: #D85A30;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
       box-shadow: 0 4px 16px rgba(216,90,48,0.4);
       transition: transform .15s, box-shadow .15s;
-      flex-shrink: 0;
-      position: relative;
+      flex-shrink: 0; position: relative;
     }
     #promptly-bubble:hover {
       transform: scale(1.08);
@@ -305,21 +260,14 @@ function createFAB() {
     #promptly-bubble svg { pointer-events: none; }
 
     #p-warn-dot {
-      display: none;
-      position: absolute;
-      top: 2px; right: 2px;
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      background: #ef4444;
-      border: 2px solid #fff;
-      color: #fff;
-      font-size: 9px; font-weight: 800;
-      align-items: center; justify-content: center;
-      line-height: 1;
+      display: none; position: absolute; top: 2px; right: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #ef4444; border: 2px solid #fff;
+      color: #fff; font-size: 9px; font-weight: 800;
+      align-items: center; justify-content: center; line-height: 1;
     }
     #p-warn-dot.visible { display: flex; }
 
-    /* ── Panel ── */
     #promptly-panel {
       width: 280px;
       background: rgba(255,255,255,0.97);
@@ -331,17 +279,14 @@ function createFAB() {
       overflow: hidden;
       transform-origin: bottom right;
       transform: scale(0.85) translateY(8px);
-      opacity: 0;
-      pointer-events: none;
+      opacity: 0; pointer-events: none;
       transition: transform .18s cubic-bezier(.34,1.56,.64,1), opacity .15s ease;
     }
     #promptly-panel.open {
       transform: scale(1) translateY(0);
-      opacity: 1;
-      pointer-events: all;
+      opacity: 1; pointer-events: all;
     }
 
-    /* ── Tabs ── */
     .p-tab-bar {
       display: flex;
       border-bottom: 1px solid rgba(216,90,48,0.12);
@@ -359,11 +304,11 @@ function createFAB() {
     .p-pane { display: none; padding: 14px; }
     .p-pane.active { display: block; }
 
-    /* ── Prompt tab idle ── */
+    /* ── Prompt tab ── */
     .p-prompt-hint {
       font-size: 12px; color: #993C1D;
-      line-height: 1.6; text-align: center;
-      padding: 4px 0 10px;
+      line-height: 1.7; text-align: center;
+      padding: 16px 8px 12px;
     }
     .p-prompt-hint kbd {
       display: inline-block;
@@ -390,7 +335,7 @@ function createFAB() {
       border-top: 1px solid rgba(216,90,48,0.12);
     }
 
-    /* ── In-panel optimization states ── */
+    /* ── Loading ── */
     #p-opt-loading {
       display: none; flex-direction: column;
       align-items: center; padding: 24px 14px; gap: 10px;
@@ -405,7 +350,15 @@ function createFAB() {
     }
     .p-opt-spinner-label { font-size: 12px; color: #993C1D; }
 
+    /* ── Result ── */
     #p-opt-result { display: none; }
+
+    .p-format-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      background: rgba(216,90,48,0.1); color: #993C1D;
+      padding: 2px 8px; border-radius: 20px; margin-bottom: 8px;
+    }
 
     .p-opt-metrics {
       display: grid; grid-template-columns: repeat(3, 1fr);
@@ -440,7 +393,7 @@ function createFAB() {
       color: #2a2a3e; margin-bottom: 8px;
       user-select: text;
     }
-    .p-opt-text.optimized {
+    .p-opt-text.restructured {
       border-color: rgba(216,90,48,0.2);
       background: rgba(216,90,48,0.03);
     }
@@ -486,8 +439,7 @@ function createFAB() {
     .p-dropzone {
       border: 2px dashed rgba(216,90,48,0.3);
       border-radius: 12px; padding: 16px; text-align: center;
-      cursor: pointer;
-      transition: border-color .12s, background .12s;
+      cursor: pointer; transition: border-color .12s, background .12s;
       position: relative;
     }
     .p-dropzone:hover, .p-dropzone.drag-over {
@@ -567,41 +519,18 @@ function createFAB() {
     .p-st-val   { font-weight: 700; color: #D85A30; }
     .p-st-val.neutral { color: #1a1a1a; }
 
-    .p-st-mode-row {
-      padding: 7px 11px;
-      border-bottom: 1px solid rgba(216,90,48,0.08);
-    }
-    .p-st-mode-row:last-child { border-bottom: none; }
-    .p-st-mode-header {
-      display: flex; justify-content: space-between;
-      font-size: 11px; margin-bottom: 4px;
-    }
-    .p-st-mode-name { color: #333; }
-    .p-st-mode-pct  { font-weight: 700; color: #D85A30; }
-    .p-st-bar-track {
-      height: 5px; border-radius: 3px;
-      background: rgba(216,90,48,0.15); overflow: hidden;
-    }
-    .p-st-bar-fill {
-      height: 100%; border-radius: 3px;
-      background: #D85A30;
-      transition: width .3s ease;
-    }
-
     .p-st-reset-btn {
       width: 100%; margin-top: 12px; padding: 7px;
       background: transparent;
       border: 1.5px solid rgba(216,90,48,0.25);
       border-radius: 8px; cursor: pointer;
       font-size: 11px; font-weight: 600; font-family: inherit;
-      color: #993C1D;
-      transition: background .12s, border-color .12s;
+      color: #993C1D; transition: background .12s, border-color .12s;
     }
     .p-st-reset-btn:hover {
       background: rgba(216,90,48,0.06);
       border-color: rgba(216,90,48,0.4);
     }
-
     .p-stats-empty {
       text-align: center; font-size: 11px; color: #aaa;
       padding: 24px 0; line-height: 1.7;
@@ -623,7 +552,7 @@ function createFAB() {
         <!-- idle -->
         <div id="p-opt-idle">
           <div class="p-prompt-hint">
-            Press <kbd>⌘⇧P</kbd> to optimize<br>the current prompt
+            Press <kbd>⌘⇧P</kbd> to restructure<br>your prompt into a token-efficient format
           </div>
           <div class="p-ctx-tracker" id="p-ctx-tracker">
             <div class="p-ctx-title">📈 Context Cost Tracker</div>
@@ -650,16 +579,17 @@ function createFAB() {
         <!-- loading -->
         <div id="p-opt-loading">
           <div class="p-opt-spinner"></div>
-          <span class="p-opt-spinner-label">Optimizing…</span>
+          <span class="p-opt-spinner-label">Restructuring…</span>
         </div>
 
         <!-- result -->
         <div id="p-opt-result">
+          <div id="p-format-badge" class="p-format-badge" style="display:none"></div>
           <div class="p-opt-metrics" id="p-opt-metrics"></div>
           <div class="p-opt-section-label">Original</div>
           <div class="p-opt-text" id="p-opt-original"></div>
-          <div class="p-opt-section-label">Optimized</div>
-          <div class="p-opt-text optimized" id="p-opt-optimized"></div>
+          <div class="p-opt-section-label">Restructured</div>
+          <div class="p-opt-text restructured" id="p-opt-optimized"></div>
           <div class="p-opt-explanation" id="p-opt-explanation"></div>
           <div class="p-opt-actions">
             <button class="p-opt-use-btn"     id="p-opt-use">Use This</button>
@@ -680,13 +610,14 @@ function createFAB() {
           <div class="p-drop-sub">Compresses before inserting</div>
         </div>
         <div class="p-file-result" id="p-file-result">
-          <div class="p-file-name" id="p-file-name"></div>
-          <div class="p-stats"     id="p-stats"></div>
+          <div class="p-file-name"   id="p-file-name"></div>
+          <div class="p-stats"       id="p-stats"></div>
           <div><span class="p-savings-pill" id="p-savings-pill"></span></div>
-          <button class="p-insert-btn"      id="p-insert-btn">Insert to chat</button>
-          <div class="p-insert-status"      id="p-insert-status"></div>
+          <button class="p-insert-btn"     id="p-insert-btn">Insert to chat</button>
+          <div class="p-insert-status"     id="p-insert-status"></div>
         </div>
       </div>
+
       <div class="p-pane" id="p-pane-stats">
         <div id="p-stats-content">
           <div class="p-stats-empty">No optimizations yet.<br>Press ⌘⇧P to get started.</div>
@@ -721,27 +652,50 @@ function createFAB() {
     fab.querySelector('#p-opt-loading').style.display = 'flex';
     fab.querySelector('#p-opt-result').style.display  = 'none';
   }
-  function showResult({ original, optimized, explanation, tokensBefore, tokensAfter, onUse }) {
+  function showResult({ original, optimized, explanation, result, onUse }) {
     fab.querySelector('#p-opt-idle').style.display    = 'none';
     fab.querySelector('#p-opt-loading').style.display = 'none';
     fab.querySelector('#p-opt-result').style.display  = 'block';
 
-    const savedPct = tokensBefore > 0
-      ? Math.round((1 - tokensAfter / tokensBefore) * 100)
-      : 0;
+    const format_used         = result.format_used         ?? 'pipe';
+    const input_tokens_used   = result.input_tokens_used   ?? 0;
+    const output_tokens_used  = result.output_tokens_used  ?? 0;
+    const original_tokens     = result.original_tokens     ?? 0;
+    const restructured_tokens = result.restructured_tokens ?? 0;
+    const token_delta         = result.token_delta         ?? 0;
+
+    // Format badge (pipe / markdown / xml)
+    const badgeEl = fab.querySelector('#p-format-badge');
+    const icons = { pipe: '|', markdown: '#', xml: '</>' };
+    badgeEl.textContent = (icons[format_used] || '') + ' ' + format_used.toUpperCase();
+    badgeEl.style.display = 'inline-block';
+
+    const deltaLabel = token_delta > 0
+      ? `−${token_delta} saved`
+      : token_delta < 0
+        ? `+${Math.abs(token_delta)} added`
+        : '±0';
 
     fab.querySelector('#p-opt-metrics').innerHTML = `
       <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Before</div>
-        <div class="p-opt-metric-value">${tokensBefore}</div>
+        <div class="p-opt-metric-label">Input used</div>
+        <div class="p-opt-metric-value">${input_tokens_used}</div>
       </div>
       <div class="p-opt-metric">
-        <div class="p-opt-metric-label">After</div>
-        <div class="p-opt-metric-value">${tokensAfter}</div>
+        <div class="p-opt-metric-label">Output used</div>
+        <div class="p-opt-metric-value">${output_tokens_used}</div>
       </div>
       <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Saved</div>
-        <div class="p-opt-metric-value saved">${savedPct > 0 ? savedPct + '%' : '—'}</div>
+        <div class="p-opt-metric-label">Original</div>
+        <div class="p-opt-metric-value">${original_tokens}t</div>
+      </div>
+      <div class="p-opt-metric">
+        <div class="p-opt-metric-label">Restructured</div>
+        <div class="p-opt-metric-value">${restructured_tokens}t</div>
+      </div>
+      <div class="p-opt-metric">
+        <div class="p-opt-metric-label">Delta</div>
+        <div class="p-opt-metric-value ${token_delta > 0 ? 'saved' : ''}">${deltaLabel}</div>
       </div>`;
 
     fab.querySelector('#p-opt-original').textContent  = original;
@@ -755,13 +709,10 @@ function createFAB() {
       expEl.classList.remove('visible');
     }
 
-    const useBtn = fab.querySelector('#p-opt-use');
-    const dimBtn = fab.querySelector('#p-opt-dismiss');
-    useBtn.onclick = () => { onUse(optimized); showIdle(); };
-    dimBtn.onclick = () => showIdle();
+    fab.querySelector('#p-opt-use').onclick     = () => { onUse(optimized); showIdle(); };
+    fab.querySelector('#p-opt-dismiss').onclick = () => showIdle();
   }
 
-  // Expose on the FAB element so optimize() can reach it
   fab._showLoading = showLoading;
   fab._showResult  = showResult;
   fab._showIdle    = showIdle;
@@ -824,7 +775,7 @@ function createFAB() {
     });
   });
 
-  // ── Compression mode toggle ────────────────────────────────────────────────
+  // ── Attach tab ────────────────────────────────────────────────────────────
   let compressionMode = 'photo';
   fab.querySelectorAll('.p-cmode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -834,8 +785,9 @@ function createFAB() {
     });
   });
 
-  // ── Drop zone ─────────────────────────────────────────────────────────────
-  const dropzone = fab.querySelector('#p-dropzone');
+  const dropzone  = fab.querySelector('#p-dropzone');
+  const fileInput = fab.querySelector('#p-file-input');
+
   dropzone.addEventListener('dragover',  (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
   dropzone.addEventListener('dragleave', ()  => dropzone.classList.remove('drag-over'));
   dropzone.addEventListener('drop', (e) => {
@@ -843,8 +795,6 @@ function createFAB() {
     dropzone.classList.remove('drag-over');
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
-
-  const fileInput = fab.querySelector('#p-file-input');
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) handleFile(fileInput.files[0]);
   });
@@ -859,7 +809,7 @@ function createFAB() {
     const insertBtn = fab.querySelector('#p-insert-btn');
     const statusEl  = fab.querySelector('#p-insert-status');
 
-    nameEl.textContent = file.name.length > 20 ? file.name.slice(0, 17) + '…' : file.name;
+    nameEl.textContent   = file.name.length > 20 ? file.name.slice(0, 17) + '…' : file.name;
     statusEl.textContent = ''; statusEl.className = 'p-insert-status';
 
     if (file.type.startsWith('image/')) {
@@ -884,9 +834,7 @@ function createFAB() {
             <span class="p-stats-label">After</span>
             <span class="p-stats-val">${wOut}×${hOut} · ~${info.compressedTokens.toLocaleString()}t · ${info.compressedKB}KB</span>
           </div>
-          <div class="p-stats-note">
-            Same token count — grayscale reduces file size only (~${kbSaved}KB), not LLM vision tokens
-          </div>`;
+          <div class="p-stats-note">Grayscale reduces file size (~${kbSaved}KB), not LLM vision tokens</div>`;
         pillEl.textContent = `${savedPct}% fewer tokens · ~${kbSaved}KB smaller file`;
       } else {
         statsEl.innerHTML = `
@@ -901,13 +849,13 @@ function createFAB() {
         pillEl.textContent = `Saved ${savedPct}% fewer tokens`;
       }
 
-      insertBtn.disabled = false;
+      insertBtn.disabled    = false;
       insertBtn.textContent = 'Insert to chat';
     } else {
       compressedFile = file;
       statsEl.innerHTML = `<div class="p-stats-row"><span class="p-stats-label">File</span><span class="p-stats-val">${Math.round(file.size/1024)} KB</span></div>`;
-      pillEl.textContent = 'Ready to insert';
-      insertBtn.disabled = false;
+      pillEl.textContent    = 'Ready to insert';
+      insertBtn.disabled    = false;
       insertBtn.textContent = 'Insert to chat';
     }
 
@@ -922,12 +870,13 @@ function createFAB() {
 
     const strategy = await insertCompressedFile(compressedFile);
 
-    insertBtn.disabled = false; insertBtn.textContent = 'Insert to chat';
+    insertBtn.disabled    = false;
+    insertBtn.textContent = 'Insert to chat';
     if (strategy === 'download') {
-      statusEl.className = 'p-insert-status warn';
+      statusEl.className   = 'p-insert-status warn';
       statusEl.textContent = '⚠ Downloaded — upload manually';
     } else {
-      statusEl.className = 'p-insert-status ok';
+      statusEl.className   = 'p-insert-status ok';
       statusEl.textContent = '✓ Inserted into chat';
     }
   });
@@ -991,41 +940,15 @@ function createFAB() {
         return;
       }
 
-      // Session (today) stats — reset if the stored date is stale
       const todayCount  = s.lastUpdated === today ? (s.sessionOptimizations || 0) : 0;
       const todayTokens = s.lastUpdated === today ? (s.sessionTokensSaved   || 0) : 0;
       const todayCost   = todayTokens * COST_PER_TOKEN_GLOBAL;
-
-      // Mode bars — all 4 modes, even if zero
-      const modeUsage = s.modeUsage || {};
-      const totalModePresses = Object.values(modeUsage).reduce((a, b) => a + b, 0) || 1;
-      const modeRows = [
-        { key: 'cost_min',      label: '💰 Cost Min'   },
-        { key: 'code_gen',      label: '💻 Code Gen'   },
-        { key: 'concise',       label: '⚡ Concise'    },
-        { key: 'deep_research', label: '🔬 Deep Research' }
-      ]
-        .map(({ key, label }) => {
-          const count = modeUsage[key] || 0;
-          const pct   = Math.round((count / totalModePresses) * 100);
-          return `
-            <div class="p-st-mode-row">
-              <div class="p-st-mode-header">
-                <span class="p-st-mode-name">${label}</span>
-                <span class="p-st-mode-pct">${pct}%</span>
-              </div>
-              <div class="p-st-bar-track">
-                <div class="p-st-bar-fill" style="width:${pct}%"></div>
-              </div>
-            </div>`;
-        })
-        .join('');
 
       el.innerHTML = `
         <div class="p-st-section">Today</div>
         <div class="p-st-block">
           <div class="p-st-row">
-            <span class="p-st-label">Optimizations</span>
+            <span class="p-st-label">Restructured</span>
             <span class="p-st-val neutral">${todayCount}</span>
           </div>
           <div class="p-st-row">
@@ -1041,7 +964,7 @@ function createFAB() {
         <div class="p-st-section">All Time</div>
         <div class="p-st-block">
           <div class="p-st-row">
-            <span class="p-st-label">Total optimized</span>
+            <span class="p-st-label">Total restructured</span>
             <span class="p-st-val neutral">${s.totalOptimizations.toLocaleString()}</span>
           </div>
           <div class="p-st-row">
@@ -1056,10 +979,15 @@ function createFAB() {
             <span class="p-st-label">Best compression</span>
             <span class="p-st-val">${s.bestCompression}%</span>
           </div>
+          <div class="p-st-row">
+            <span class="p-st-label">Avg prompt length</span>
+            <span class="p-st-val neutral">${s.avgPromptLength} tok</span>
+          </div>
+          <div class="p-st-row">
+            <span class="p-st-label">Avg after restructure</span>
+            <span class="p-st-val neutral">${s.avgCompressedLength} tok</span>
+          </div>
         </div>
-
-        <div class="p-st-section">Your Most Used Mode</div>
-        <div class="p-st-block">${modeRows}</div>
 
         <button class="p-st-reset-btn" id="p-stats-reset">Reset Stats</button>
       `;
@@ -1081,7 +1009,6 @@ async function optimize() {
   const fab = document.getElementById('promptly-fab');
   if (!fab) return;
 
-  // Open the panel and switch to Prompt tab
   const panel = fab.querySelector('#promptly-panel');
   panel.classList.add('open');
   fab.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
@@ -1091,31 +1018,19 @@ async function optimize() {
 
   fab._showLoading();
 
-  const { defaultMode = "cost_min" } = await chrome.storage.sync.get("defaultMode");
-  const mode = detectMode(prompt, defaultMode);
+  chrome.runtime.sendMessage({ type: 'OPTIMIZE', prompt }, (resp) => {
+    if (chrome.runtime.lastError || !resp) { fab._showIdle(); return; }
+    if (!resp.ok)                          { fab._showIdle(); return; }
 
-  chrome.runtime.sendMessage(
-    { type: "OPTIMIZE", prompt, mode },
-    (resp) => {
-      if (chrome.runtime.lastError || !resp) {
-        fab._showIdle();
-        return;
-      }
-      if (!resp.ok) {
-        fab._showIdle();
-        return;
-      }
-      recordOptimization(resp.tokensBefore, resp.tokensAfter, mode);
-      fab._showResult({
-        original:     prompt,
-        optimized:    resp.optimized,
-        explanation:  resp.explanation ?? "",
-        tokensBefore: resp.tokensBefore,
-        tokensAfter:  resp.tokensAfter,
-        onUse: (text) => replacePromptText(text)
-      });
-    }
-  );
+    recordOptimization(resp.original_tokens, resp.restructured_tokens);
+    fab._showResult({
+      original:    prompt,
+      optimized:   resp.structured,
+      explanation: resp.explanation ?? '',
+      result:      resp,
+      onUse: (text) => replacePromptText(text)
+    });
+  });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -1127,5 +1042,5 @@ if (document.readyState === 'loading') {
 
 chrome.runtime.onMessage.addListener((msg) => {
   console.log('[Promptly] message received:', msg);
-  if (msg.action === "optimize") optimize();
+  if (msg.action === 'optimize') optimize();
 });

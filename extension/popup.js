@@ -1,39 +1,25 @@
-/**
- * popup.js — Wires popup.html to chrome.storage.sync.
- */
+async function checkServer() {
+  const statusEl = document.getElementById("server-status")
+  const dotEl = document.getElementById("status-dot")
 
-const apiKeyInput   = document.getElementById("api-key");
-const saveBtn       = document.getElementById("save-btn");
-const saveFeedback  = document.getElementById("save-feedback");
-const modeSelect    = document.getElementById("mode-select");
-const statusDot     = document.getElementById("status-dot");
-const statusLabel   = document.getElementById("status-label");
+  try {
+    const res = await fetch("https://rikaaaaaa-promptly.hf.space/health")
+    const data = await res.json()
 
-function setStatus(hasKey) {
-  statusDot.className   = "status-dot " + (hasKey ? "ok" : "err");
-  statusLabel.textContent = hasKey ? "ready" : "no key";
+    dotEl.style.background = "#2d9e4f"
+    statusEl.textContent = data.compiled
+      ? "DSPy server running · compiled"
+      : "DSPy server running · uncompiled"
+
+  } catch {
+    dotEl.style.background = "#c0392b"
+    statusEl.innerHTML =
+      "Server not running<br>" +
+      "<code style='font-size:10px'>" +
+      "cd promptly/dspy-server<br>" +
+      "uvicorn server:app --port 8000" +
+      "</code>"
+  }
 }
 
-// Load saved values
-chrome.storage.sync.get(["groqKey", "defaultMode"], (data) => {
-  if (data.groqKey)     apiKeyInput.value  = data.groqKey;
-  if (data.defaultMode) modeSelect.value   = data.defaultMode;
-  setStatus(!!data.groqKey?.trim());
-});
-
-// Save
-saveBtn.addEventListener("click", () => {
-  const key  = apiKeyInput.value.trim();
-  const mode = modeSelect.value;
-
-  chrome.storage.sync.set({ groqKey: key, defaultMode: mode }, () => {
-    setStatus(!!key);
-    saveFeedback.classList.add("show");
-    setTimeout(() => saveFeedback.classList.remove("show"), 2000);
-  });
-});
-
-// Mode changes save immediately
-modeSelect.addEventListener("change", () => {
-  chrome.storage.sync.set({ defaultMode: modeSelect.value });
-});
+document.addEventListener("DOMContentLoaded", checkServer)

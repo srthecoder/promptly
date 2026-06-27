@@ -1,153 +1,80 @@
 /**
  * background.js — Service worker.
- * Receives {type:"OPTIMIZE", prompt, mode} from content.js,
- * calls Groq, returns {optimized, tokensBefore, tokensAfter}.
+ * Single strategy: RESTRUCTURE via local DSPy server.
+ * Receives {type:"OPTIMIZE", prompt} from content.js, returns result.
  * Forwards the "optimize-prompt" keyboard command to the active tab.
  */
 
-const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL    = "llama-3.3-70b-versatile";
-
-const REWRITER_PREFIX = `You are a prompt rewriter, not an assistant.
-The user's input is a DRAFT PROMPT they want to send to another LLM. Your ONLY job is to rewrite that draft into a better, clearer, more efficient version of the same prompt.
-
-DO NOT answer the question.
-DO NOT generate code, analysis, or any content.
-DO NOT add labels like 'Rewritten Prompt:'.
-DO NOT wrap output in quotes.
-ONLY output the rewritten prompt, then on the last line:
-EXPLANATION: <one sentence on what changed>
-
-NEVER remove code blocks, variable names, schemas, or technical specifications — preserve them verbatim.`;
-
-const SYSTEM_PROMPTS = {
-  cost_min: `${REWRITER_PREFIX}
-
-Strategy — Cost Minimizer:
-- Remove filler, hedging, repetition, conversational padding
-- Collapse verbose phrasing to direct, dense language
-- Preserve 100% of the logical intent and all technical details`,
-
-  concise: `${REWRITER_PREFIX}
-
-Strategy — Concise Answer:
-- Make the core question clear in the first sentence
-- Add a brevity constraint (e.g. "Answer in 3 sentences or fewer")
-- Strip all conversational padding, hedging, and filler`,
-
-  deep_research: `${REWRITER_PREFIX}
-
-Strategy — Deep Research:
-- Add explicit scope (what to cover and what to exclude)
-- Add requested output format (sections, headers, bullets as appropriate)
-- Add depth signals: "be thorough", "include tradeoffs", "cite reasoning"
-- The rewritten prompt may be longer than the original if the original was vague — that is intentional`,
-
-  code_gen: `${REWRITER_PREFIX}
-
-Strategy — Code Generation:
-- Infer and specify the programming language if not stated
-- Add input/output specification
-- Add edge cases to handle if relevant (empty input, nulls, errors)
-- Add output format instruction ("return only code, no explanation" or "include inline comments")
-- NEVER write, fix, or complete the code — only improve the prompt asking for it`,
-
-};
-
-function estimateTokens(text) {
-  const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-  return Math.round(words * 1.3);
-}
-
-function parseResponse(raw) {
-  const marker = raw.lastIndexOf("EXPLANATION:");
-  if (marker === -1) return { optimized: raw.trim(), explanation: "" };
-  return {
-    optimized:   raw.slice(0, marker).trim(),
-    explanation: raw.slice(marker + "EXPLANATION:".length).trim()
-  };
-}
-
-async function callGroq(prompt, mode, apiKey) {
-  const system = SYSTEM_PROMPTS[mode] ?? SYSTEM_PROMPTS.cost_min;
-
-  const res = await fetch(GROQ_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.1,
-      messages: [
-        { role: "system", content: system },
-        { role: "user",   content: `Rewrite this draft prompt:\n\n${prompt}` }
-      ]
-    })
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message ?? `Groq error ${res.status}`);
+async function optimizePrompt(prompt) {
+  try {
+    const response = await fetch(
+      "https://rikaaaaaa-promptly.hf.space/optimize",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      }
+    );
+    if (!response.ok) {
+      throw new Error(
+        "DSPy server not running. " +
+        "Open Terminal and run: " +
+        "cd promptly/dspy-server && " +
+        "uvicorn server:app --port 8000"
+      );
+    }
+    return await response.json();
+  } catch (err) {
+    if (err.message.includes("Failed to fetch")) {
+      throw new Error(
+        "DSPy server not running. " +
+        "Start it with: uvicorn server:app --port 8000"
+      );
+    }
+    throw err;
   }
-
-  const data = await res.json();
-  const raw  = data?.choices?.[0]?.message?.content ?? "";
-  return parseResponse(raw);
 }
 
-// ── Message handler (from content.js) ────────────────────────────────────────
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type !== "OPTIMIZE") return;
+chrome.runtime.onMessage.addListener(
+  (msg, _, sendResponse) => {
+    if (msg.type !== "OPTIMIZE") return;
 
-  chrome.storage.sync.get(["groqKey", "defaultMode"], async (stored) => {
-    const apiKey = stored.groqKey?.trim();
-    if (!apiKey) {
-      sendResponse({ ok: false, error: "No Groq API key. Open Promptly and add one." });
-      return;
-    }
+    const wordCount = msg.prompt.trim()
+      .split(/\s+/).length;
 
-    const mode = msg.mode ?? stored.defaultMode ?? "cost_min";
-
-    const wordCount = msg.prompt.trim().split(/\s+/).length;
-    if (wordCount < 15) {
+    if (wordCount < 8) {
       sendResponse({
         ok: true,
-        optimized:    msg.prompt,
-        explanation:  "Prompt is already concise — no compression needed.",
-        tokensBefore: estimateTokens(msg.prompt),
-        tokensAfter:  estimateTokens(msg.prompt)
+        structured: msg.prompt,
+        explanation: "Prompt is already concise.",
+        original_tokens: Math.round(wordCount * 1.3),
+        restructured_tokens: Math.round(wordCount * 1.3),
+        token_delta: 0,
+        prompt_shortened: false,
+        format_used: "pipe"
       });
-      return;
+      return true;
     }
 
-    try {
-      const { optimized, explanation } = await callGroq(msg.prompt, mode, apiKey);
-      sendResponse({
-        ok: true,
-        optimized,
-        explanation,
-        tokensBefore: estimateTokens(msg.prompt),
-        tokensAfter:  estimateTokens(optimized)
-      });
-    } catch (err) {
-      sendResponse({ ok: false, error: err.message });
-    }
-  });
+    optimizePrompt(msg.prompt)
+      .then(result => sendResponse({ ok: true, ...result }))
+      .catch(err => sendResponse({
+        ok: false,
+        error: err.message
+      }));
 
-  return true; // keep message channel open for async
-});
+    return true;
+  }
+);
 
 // ── Forward keyboard command to active tab ────────────────────────────────────
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== "optimize-prompt") return;
 
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== 'optimize-prompt') return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
-
   try {
-    await chrome.tabs.sendMessage(tab.id, { action: "optimize" });
+    await chrome.tabs.sendMessage(tab.id, { action: 'optimize' });
   } catch (err) {
     console.warn('Promptly: could not reach content script', err);
   }
