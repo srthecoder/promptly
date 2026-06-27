@@ -23,7 +23,14 @@
       "Bash(command -v convert)",
       "Bash(python3 -c \"import PIL\")",
       "Bash(node -e \"require\\('sharp'\\)\")",
-      "Bash(node -e \"require\\('jimp'\\)\")"
+      "Bash(node -e \"require\\('jimp'\\)\")",
+      "Bash(python testing/json_prompting/experiment.py --dry-run)",
+      "Bash(python3 testing/json_prompting/experiment.py --dry-run)",
+      "Bash(python3 testing/json_prompting/experiment.py --case 0)",
+      "Bash(/Library/Developer/CommandLineTools/usr/bin/python3 testing/json_prompting/experiment.py --case 0)",
+      "Bash(xargs cat -n)",
+      "Bash(git -C /Users/rika/Downloads/promptly remote -v)",
+      "Bash(git -C /Users/rika/Downloads/promptly status)"
     ]
   }
 }
