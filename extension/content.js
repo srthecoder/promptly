@@ -108,121 +108,78 @@ function waitForPromptEl(ms = 5000) {
   });
 }
 
-// ── Context cost tracking ─────────────────────────────────────────────────────
-const IMG_ATTACH_SELECTORS = [
-  '[data-testid="file-thumbnail"]',
-  '[data-testid="attachment"] img',
-  '.attachment-item img',
-  '.image-attachment',
-  'img[data-original-src]'
-];
+// ── Attach .md file to platform chat ──────────────────────────────────────────
+async function attachMarkdownFile(markdownText, originalFilename) {
+  const baseName   = originalFilename.replace(/\.[^/.]+$/, '');
+  const timestamp  = Date.now();
+  const mdFilename = `${baseName}_${timestamp}.md`;
+  const blob   = new Blob([markdownText], { type: 'text/markdown' });
+  const mdFile = new File([blob], mdFilename, { type: 'text/markdown' });
 
-function getMessageCount() {
-  const host = window.location.hostname;
-  if (host.includes('claude.ai'))
-    return document.querySelectorAll('[data-testid="human-turn"], .human-turn, div[class*="human"]').length;
-  if (host.includes('openai.com') || host.includes('chatgpt.com'))
-    return document.querySelectorAll('[data-message-author-role="user"]').length;
-  if (host.includes('gemini.google.com'))
-    return document.querySelectorAll('.user-query, user-query, [class*="user-message"]').length;
-  return 0;
-}
-
-function hasImageAttachment() {
-  return IMG_ATTACH_SELECTORS.some(sel => !!document.querySelector(sel));
-}
-
-// ── Image compression ─────────────────────────────────────────────────────────
-const compressImage = (file, mode = 'photo') => new Promise(resolve => {
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width  = Math.round(img.width  * 0.5);
-    canvas.height = Math.round(img.height * 0.5);
-    const ctx = canvas.getContext('2d');
-    if (mode === 'text') ctx.filter = 'grayscale(100%)';
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const origSize = file.size;
-    canvas.toBlob(blob => {
-      resolve({
-        file:             new File([blob], file.name, { type: 'image/jpeg' }),
-        originalW:        img.width,
-        originalH:        img.height,
-        originalTokens:   Math.round((img.width  * img.height)  / 750),
-        compressedTokens: Math.round((canvas.width * canvas.height) / 750),
-        originalKB:       Math.round(origSize   / 1024),
-        compressedKB:     Math.round(blob.size  / 1024)
-      });
-    }, 'image/jpeg', 0.82);
-  };
-  img.src = URL.createObjectURL(file);
-});
-
-// ── Platform-aware file insertion ─────────────────────────────────────────────
-const insertCompressedFile = async (file) => {
-  const host = window.location.hostname;
-
-  if (host.includes('gemini.google.com')) {
-    const inputs = document.querySelectorAll('input[type="file"]');
-    for (const input of inputs) {
-      try {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        Object.defineProperty(input, 'files', { value: dt.files, writable: false });
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        input.dispatchEvent(new Event('input',  { bubbles: true }));
-        input.click();
-        return 'file-input';
-      } catch (e) { continue; }
-    }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url; a.download = file.name; a.click();
-    return 'download';
-  }
-
+  // Strategy 1: platform file input
   const inputs = document.querySelectorAll('input[type="file"]');
   for (const input of inputs) {
     if (input.id === 'p-file-input') continue;
     try {
       const dt = new DataTransfer();
-      dt.items.add(file);
+      dt.items.add(mdFile);
       input.files = dt.files;
       input.dispatchEvent(new Event('change', { bubbles: true }));
       input.dispatchEvent(new Event('input',  { bubbles: true }));
-      return 'file-input';
-    } catch (e) { continue; }
+      await new Promise(r => setTimeout(r, 800));
+      const attached = document.querySelector(
+        '[data-testid*="attachment"], .attachment, [class*="upload-preview"], [class*="file-chip"]'
+      );
+      if (attached) {
+        console.log('[Promptly] Attached .md via file input');
+        return { success: true, method: 'file_input', filename: mdFilename };
+      }
+    } catch (e) { console.log('[Promptly] file input failed:', e); }
   }
 
-  const dropZones = ['[contenteditable="true"]', '#prompt-textarea', 'main', 'body'];
-  for (const sel of dropZones) {
-    const zone = document.querySelector(sel);
-    if (!zone) continue;
+  // Strategy 2: drag-drop onto the chat input
+  const dropSelectors = [
+    '[contenteditable="true"]', '#prompt-textarea', 'textarea', '.conversation-input', 'main'
+  ];
+  for (const sel of dropSelectors) {
+    const target = document.querySelector(sel);
+    if (!target) continue;
     try {
       const dt = new DataTransfer();
-      dt.items.add(file);
-      ['dragenter', 'dragover', 'drop'].forEach(e =>
-        zone.dispatchEvent(new DragEvent(e, { dataTransfer: dt, bubbles: true }))
-      );
-      return 'drag-drop';
-    } catch (e) { continue; }
+      dt.items.add(mdFile);
+      target.dispatchEvent(new DragEvent('dragenter', { bubbles: true, dataTransfer: dt }));
+      await new Promise(r => setTimeout(r, 100));
+      target.dispatchEvent(new DragEvent('dragover',  { bubbles: true, dataTransfer: dt }));
+      await new Promise(r => setTimeout(r, 100));
+      target.dispatchEvent(new DragEvent('drop',      { bubbles: true, dataTransfer: dt }));
+      await new Promise(r => setTimeout(r, 800));
+      console.log('[Promptly] Drag-drop .md attempted');
+      return { success: true, method: 'drag_drop', filename: mdFilename };
+    } catch (e) { console.log('[Promptly] drag-drop failed:', e); }
   }
 
-  const target = document.querySelector('[contenteditable="true"], textarea');
-  if (target) {
-    target.focus();
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    target.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
-    return 'clipboard';
-  }
+  // Strategy 3: clipboard paste
+  try {
+    const pasteTarget = document.querySelector('[contenteditable="true"], #prompt-textarea, textarea');
+    if (pasteTarget) {
+      pasteTarget.focus();
+      const dt = new DataTransfer();
+      dt.items.add(mdFile);
+      pasteTarget.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: dt }));
+      await new Promise(r => setTimeout(r, 800));
+      return { success: true, method: 'clipboard', filename: mdFilename };
+    }
+  } catch (e) { console.log('[Promptly] clipboard paste failed:', e); }
 
-  const url = URL.createObjectURL(file);
+  // Strategy 4: download fallback
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = file.name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return 'download';
-};
+  a.href = url; a.download = mdFilename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return { success: false, method: 'download', filename: mdFilename,
+           message: `Downloaded ${mdFilename} — attach it manually` };
+}
 
 // ── FAB + Panel ───────────────────────────────────────────────────────────────
 function createFAB() {
@@ -304,35 +261,24 @@ function createFAB() {
     .p-pane { display: none; padding: 14px; }
     .p-pane.active { display: block; }
 
-    /* ── Prompt tab ── */
-    .p-prompt-hint {
-      font-size: 12px; color: #993C1D;
-      line-height: 1.7; text-align: center;
-      padding: 16px 8px 12px;
+    /* ── Prompt tab idle ── */
+    .p-idle-empty {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 28px 16px;
+      gap: 8px; min-height: 100px;
     }
-    .p-prompt-hint kbd {
+    .p-idle-text {
+      font-size: 12px; color: #aaa; line-height: 1.5;
+    }
+    .p-idle-kbd {
       display: inline-block;
-      background: rgba(216,90,48,0.1);
-      border: 1px solid rgba(216,90,48,0.25);
-      border-radius: 4px; padding: 1px 5px;
-      font-size: 10.5px; color: #993C1D; font-family: monospace;
-    }
-
-    /* ── Context tracker ── */
-    .p-ctx-tracker {
-      background: rgba(216,90,48,0.05);
-      border: 1px solid rgba(216,90,48,0.15);
-      border-radius: 10px; padding: 10px 11px;
-      font-size: 11px; color: #333;
-    }
-    .p-ctx-title { font-size: 11px; font-weight: 700; color: #993C1D; margin-bottom: 7px; }
-    .p-ctx-row   { display: flex; justify-content: space-between; margin-bottom: 3px; line-height: 1.6; }
-    .p-ctx-label { color: #666; }
-    .p-ctx-val   { font-weight: 600; color: #1a1a1a; }
-    .p-ctx-tip   {
-      margin-top: 8px; font-size: 10.5px; color: #993C1D;
-      line-height: 1.5; padding-top: 7px;
-      border-top: 1px solid rgba(216,90,48,0.12);
+      background: rgba(216,90,48,0.12);
+      border: 1px solid rgba(216,90,48,0.3);
+      border-radius: 6px; padding: 3px 9px;
+      font-size: 13px; font-weight: 700;
+      color: #D85A30; font-family: monospace;
+      letter-spacing: 0.02em;
     }
 
     /* ── Loading ── */
@@ -354,14 +300,15 @@ function createFAB() {
     #p-opt-result { display: none; }
 
     .p-format-badge {
-      display: inline-block; font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .5px;
-      background: rgba(216,90,48,0.1); color: #993C1D;
-      padding: 2px 8px; border-radius: 20px; margin-bottom: 8px;
+      display: inline-block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      background: rgba(216,90,48,0.12); color: #D85A30;
+      padding: 4px 12px; border-radius: 20px; margin-bottom: 12px;
+      border: 1px solid rgba(216,90,48,0.25);
     }
 
     .p-opt-metrics {
-      display: grid; grid-template-columns: repeat(3, 1fr);
+      display: grid; grid-template-columns: 1fr 1fr;
       border: 1px solid rgba(216,90,48,0.15);
       border-radius: 8px; overflow: hidden; margin-bottom: 10px;
     }
@@ -379,18 +326,18 @@ function createFAB() {
     .p-opt-metric-value.saved { color: #D85A30; }
 
     .p-opt-section-label {
-      font-size: 9.5px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .5px;
-      color: #aaa; margin-bottom: 3px;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: #bbb; margin-bottom: 4px;
     }
     .p-opt-text {
       background: rgba(255,255,255,0.7);
       border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 7px; padding: 7px 9px;
+      border-radius: 7px; padding: 8px 10px;
       font-size: 11.5px; line-height: 1.5;
       white-space: pre-wrap; word-break: break-word;
       max-height: 90px; overflow-y: auto;
-      color: #2a2a3e; margin-bottom: 8px;
+      color: #2a2a3e; margin-bottom: 14px;
       user-select: text;
     }
     .p-opt-text.restructured {
@@ -423,22 +370,42 @@ function createFAB() {
     }
     .p-opt-dismiss-btn:hover { background: rgba(0,0,0,0.05); }
 
-    /* ── Attach tab ── */
-    .p-compress-modes { display: flex; gap: 6px; margin-bottom: 10px; }
-    .p-cmode-btn {
-      flex: 1; padding: 6px 4px;
-      background: #fff;
-      border: 1.5px solid rgba(216,90,48,0.25);
-      border-radius: 8px; cursor: pointer;
-      font-size: 11px; font-family: inherit; color: #993C1D;
-      transition: background .12s, border-color .12s; text-align: center;
+    /* ── Cost section ── */
+    .p-cost-section {
+      background: #fff5f3;
+      border-radius: 8px;
+      padding: 9px 11px;
+      margin-bottom: 10px;
+      font-size: 11px;
+      color: #555;
     }
-    .p-cmode-btn.active { background: #D85A30; border-color: #D85A30; color: #fff; font-weight: 600; }
-    .p-cmode-btn:not(.active):hover { background: rgba(216,90,48,0.06); }
+    .p-cost-unknown { color: #999; font-style: italic; }
+    .p-cost-header {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.05em; color: #999;
+      text-transform: uppercase; margin-bottom: 5px;
+    }
+    .p-cost-model {
+      font-weight: 600; color: #333;
+      margin-bottom: 5px; font-size: 11px;
+    }
+    .p-cost-row {
+      display: flex; justify-content: space-between; padding: 1px 0;
+    }
+    .p-cost-total {
+      font-weight: 700; color: #c0392b;
+      font-size: 11px; padding-top: 3px;
+    }
+    .p-cost-divider { border-top: 1px solid #e8d5d0; margin: 3px 0; }
+    .p-cost-rates { color: #999; margin-top: 5px; font-size: 9.5px; }
+    .p-cost-note  { color: #c0392b; margin-top: 3px; font-size: 9.5px; }
+    .p-cost-source { margin-top: 5px; font-size: 9.5px; }
+    .p-cost-source a { color: #c0392b; text-decoration: none; }
 
+    /* ── Attach tab ── */
     .p-dropzone {
       border: 2px dashed rgba(216,90,48,0.3);
-      border-radius: 12px; padding: 16px; text-align: center;
+      border-radius: 12px; padding: 20px 14px; text-align: center;
       cursor: pointer; transition: border-color .12s, background .12s;
       position: relative;
     }
@@ -449,18 +416,24 @@ function createFAB() {
       position: absolute; inset: 0; opacity: 0;
       cursor: pointer; width: 100%; height: 100%;
     }
-    .p-drop-icon  { font-size: 22px; margin-bottom: 6px; }
-    .p-drop-title { font-size: 12px; font-weight: 600; color: #993C1D; margin-bottom: 2px; }
-    .p-drop-sub   { font-size: 11px; color: #993C1D; opacity: 0.65; }
+    .p-drop-icon  { font-size: 22px; margin-bottom: 8px; }
+    .p-drop-title { font-size: 12px; font-weight: 600; color: #993C1D; margin-bottom: 4px; }
+    .p-drop-types { font-size: 10.5px; color: #aaa; margin-bottom: 10px; line-height: 1.6; }
+    .p-drop-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      background: rgba(216,90,48,0.08); color: #D85A30;
+      border: 1px solid rgba(216,90,48,0.2);
+      padding: 2px 8px; border-radius: 20px;
+    }
 
-    .p-file-result { margin-top: 12px; display: none; }
-    .p-file-result.visible { display: block; }
+    .p-convert-result { margin-top: 12px; display: none; }
+    .p-convert-result.visible { display: block; }
     .p-file-name {
       font-size: 11px; font-weight: 600; color: #1a1a1a;
       margin-bottom: 8px; white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis;
     }
-    .p-stats {
+    .p-convert-stats {
       background: rgba(216,90,48,0.05);
       border: 1px solid rgba(216,90,48,0.15);
       border-radius: 8px; padding: 8px 10px;
@@ -469,30 +442,26 @@ function createFAB() {
     .p-stats-row   { display: flex; justify-content: space-between; }
     .p-stats-label { color: #666; }
     .p-stats-val   { font-weight: 600; color: #1a1a1a; }
-    .p-stats-note  {
-      font-size: 10px; color: #993C1D; opacity: 0.75;
-      margin-top: 4px; padding-top: 4px;
-      border-top: 1px solid rgba(216,90,48,0.12);
-    }
     .p-savings-pill {
       display: inline-block; background: #D85A30; color: #fff;
       font-size: 10.5px; font-weight: 700;
       padding: 2px 8px; border-radius: 20px; margin-bottom: 10px;
     }
-    .p-insert-btn {
+    .p-attach-btn {
       width: 100%; padding: 9px; background: #D85A30; color: #fff;
       border: none; border-radius: 10px;
       font-size: 13px; font-weight: 500; font-family: inherit;
       cursor: pointer; transition: background .12s;
     }
-    .p-insert-btn:hover    { background: #bf4e27; }
-    .p-insert-btn:disabled { background: #e8a080; cursor: default; }
-    .p-insert-status {
+    .p-attach-btn:hover    { background: #bf4e27; }
+    .p-attach-btn:disabled { background: #e8a080; cursor: default; }
+    .p-attach-status {
       margin-top: 7px; font-size: 11px; font-weight: 600;
       text-align: center; min-height: 16px;
     }
-    .p-insert-status.ok   { color: #16a34a; }
-    .p-insert-status.warn { color: #d97706; }
+    .p-attach-status.ok   { color: #16a34a; }
+    .p-attach-status.warn { color: #d97706; }
+    .p-attach-status.err  { color: #dc2626; }
 
     /* ── Stats tab ── */
     #p-pane-stats { padding: 14px; overflow-y: auto; max-height: 420px; }
@@ -551,28 +520,10 @@ function createFAB() {
       <div class="p-pane active" id="p-pane-prompt">
         <!-- idle -->
         <div id="p-opt-idle">
-          <div class="p-prompt-hint">
-            Press <kbd>⌘⇧P</kbd> to restructure<br>your prompt into a token-efficient format
-          </div>
-          <div class="p-ctx-tracker" id="p-ctx-tracker">
-            <div class="p-ctx-title">📈 Context Cost Tracker</div>
-            <div class="p-ctx-row">
-              <span class="p-ctx-label">Messages so far</span>
-              <span class="p-ctx-val" id="p-ctx-msgs">—</span>
-            </div>
-            <div class="p-ctx-row">
-              <span class="p-ctx-label">Est. context tokens</span>
-              <span class="p-ctx-val" id="p-ctx-tokens">—</span>
-            </div>
-            <div class="p-ctx-row" id="p-ctx-img-row" style="display:none">
-              <span class="p-ctx-label">Image re-sent</span>
-              <span class="p-ctx-val" id="p-ctx-img-cost">—</span>
-            </div>
-            <div class="p-ctx-row" id="p-ctx-total-row" style="display:none">
-              <span class="p-ctx-label">Total session cost</span>
-              <span class="p-ctx-val" id="p-ctx-total">—</span>
-            </div>
-            <div class="p-ctx-tip" id="p-ctx-tip" style="display:none"></div>
+          <div class="p-idle-empty">
+            <span class="p-idle-text">Press</span>
+            <kbd class="p-idle-kbd">⌘⇧P</kbd>
+            <span class="p-idle-text">to restructure your prompt into a token-efficient format</span>
           </div>
         </div>
 
@@ -590,7 +541,7 @@ function createFAB() {
           <div class="p-opt-text" id="p-opt-original"></div>
           <div class="p-opt-section-label">Restructured</div>
           <div class="p-opt-text restructured" id="p-opt-optimized"></div>
-          <div class="p-opt-explanation" id="p-opt-explanation"></div>
+          <div id="p-opt-cost"></div>
           <div class="p-opt-actions">
             <button class="p-opt-use-btn"     id="p-opt-use">Use This</button>
             <button class="p-opt-dismiss-btn" id="p-opt-dismiss">Dismiss</button>
@@ -599,22 +550,20 @@ function createFAB() {
       </div>
 
       <div class="p-pane" id="p-pane-attach">
-        <div class="p-compress-modes">
-          <button class="p-cmode-btn active" data-mode="photo">📷 Photo/Color</button>
-          <button class="p-cmode-btn"        data-mode="text">📄 Text/Diagram</button>
-        </div>
         <div class="p-dropzone" id="p-dropzone">
-          <input type="file" id="p-file-input" accept="image/*,.pdf" />
+          <input type="file" id="p-file-input"
+            accept=".pdf,.docx,.doc,.txt,.csv,.xlsx,.xls,.json,.html,.htm,.md" />
           <div class="p-drop-icon">📎</div>
-          <div class="p-drop-title">Drop image or PDF</div>
-          <div class="p-drop-sub">Compresses before inserting</div>
+          <div class="p-drop-title">Drop file or click to upload</div>
+          <div class="p-drop-types">PDF · DOCX · CSV · XLSX · TXT · JSON · HTML</div>
+          <span class="p-drop-badge">Converted to Markdown-KV</span>
         </div>
-        <div class="p-file-result" id="p-file-result">
-          <div class="p-file-name"   id="p-file-name"></div>
-          <div class="p-stats"       id="p-stats"></div>
+        <div class="p-convert-result" id="p-convert-result">
+          <div class="p-file-name"    id="p-file-name"></div>
+          <div class="p-convert-stats" id="p-convert-stats"></div>
           <div><span class="p-savings-pill" id="p-savings-pill"></span></div>
-          <button class="p-insert-btn"     id="p-insert-btn">Insert to chat</button>
-          <div class="p-insert-status"     id="p-insert-status"></div>
+          <button class="p-attach-btn"  id="p-attach-btn">Attach to chat</button>
+          <div class="p-attach-status"  id="p-attach-status"></div>
         </div>
       </div>
 
@@ -663,6 +612,9 @@ function createFAB() {
     const original_tokens     = result.original_tokens     ?? 0;
     const restructured_tokens = result.restructured_tokens ?? 0;
     const token_delta         = result.token_delta         ?? 0;
+    const cost_data           = result.cost_data           ?? null;
+
+    console.log('[Promptly] showResult cost_data:', cost_data);
 
     // Format badge (pipe / markdown / xml)
     const badgeEl = fab.querySelector('#p-format-badge');
@@ -678,36 +630,18 @@ function createFAB() {
 
     fab.querySelector('#p-opt-metrics').innerHTML = `
       <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Input used</div>
-        <div class="p-opt-metric-value">${input_tokens_used}</div>
+        <div class="p-opt-metric-label">INPUT USED</div>
+        <div class="p-opt-metric-value">${input_tokens_used} tokens</div>
       </div>
       <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Output used</div>
-        <div class="p-opt-metric-value">${output_tokens_used}</div>
-      </div>
-      <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Original</div>
-        <div class="p-opt-metric-value">${original_tokens}t</div>
-      </div>
-      <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Restructured</div>
-        <div class="p-opt-metric-value">${restructured_tokens}t</div>
-      </div>
-      <div class="p-opt-metric">
-        <div class="p-opt-metric-label">Delta</div>
-        <div class="p-opt-metric-value ${token_delta > 0 ? 'saved' : ''}">${deltaLabel}</div>
+        <div class="p-opt-metric-label">OUTPUT USED</div>
+        <div class="p-opt-metric-value">${output_tokens_used} tokens</div>
       </div>`;
+
+    fab.querySelector('#p-opt-cost').innerHTML = renderCostSection(cost_data);
 
     fab.querySelector('#p-opt-original').textContent  = original;
     fab.querySelector('#p-opt-optimized').textContent = optimized;
-
-    const expEl = fab.querySelector('#p-opt-explanation');
-    if (explanation) {
-      expEl.textContent = '💡 ' + explanation;
-      expEl.classList.add('visible');
-    } else {
-      expEl.classList.remove('visible');
-    }
 
     fab.querySelector('#p-opt-use').onclick     = () => { onUse(optimized); showIdle(); };
     fab.querySelector('#p-opt-dismiss').onclick = () => showIdle();
@@ -757,7 +691,7 @@ function createFAB() {
   bubble.addEventListener('click', () => {
     if (hasDragged) return;
     panel.classList.toggle('open');
-    if (panel.classList.contains('open')) updateContextTracker();
+    // panel opened
   });
 
   document.addEventListener('click', (e) => {
@@ -776,15 +710,6 @@ function createFAB() {
   });
 
   // ── Attach tab ────────────────────────────────────────────────────────────
-  let compressionMode = 'photo';
-  fab.querySelectorAll('.p-cmode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      fab.querySelectorAll('.p-cmode-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      compressionMode = btn.dataset.mode;
-    });
-  });
-
   const dropzone  = fab.querySelector('#p-dropzone');
   const fileInput = fab.querySelector('#p-file-input');
 
@@ -793,139 +718,116 @@ function createFAB() {
   dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files[0]) handleConvertFile(e.dataTransfer.files[0]);
   });
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    if (fileInput.files[0]) handleConvertFile(fileInput.files[0]);
   });
 
-  let compressedFile = null;
+  let convertedMarkdown = null;
+  let convertedFilename = null;
 
-  async function handleFile(file) {
-    const resultEl  = fab.querySelector('#p-file-result');
+  async function handleConvertFile(file) {
+    const resultEl  = fab.querySelector('#p-convert-result');
     const nameEl    = fab.querySelector('#p-file-name');
-    const statsEl   = fab.querySelector('#p-stats');
+    const statsEl   = fab.querySelector('#p-convert-stats');
     const pillEl    = fab.querySelector('#p-savings-pill');
-    const insertBtn = fab.querySelector('#p-insert-btn');
-    const statusEl  = fab.querySelector('#p-insert-status');
+    const attachBtn = fab.querySelector('#p-attach-btn');
+    const statusEl  = fab.querySelector('#p-attach-status');
 
-    nameEl.textContent   = file.name.length > 20 ? file.name.slice(0, 17) + '…' : file.name;
-    statusEl.textContent = ''; statusEl.className = 'p-insert-status';
+    convertedMarkdown = null;
+    convertedFilename = file.name;
+    nameEl.textContent   = file.name.length > 28 ? file.name.slice(0, 25) + '…' : file.name;
+    statusEl.textContent = '';
+    statusEl.className   = 'p-attach-status';
+    attachBtn.disabled   = true;
+    attachBtn.textContent = `Converting ${file.name}…`;
+    pillEl.textContent   = '';
+    statsEl.innerHTML    = '';
+    resultEl.classList.add('visible');
 
-    if (file.type.startsWith('image/')) {
-      insertBtn.disabled = true;
-      insertBtn.textContent = 'Compressing…';
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const info = await compressImage(file, compressionMode);
-      compressedFile = info.file;
+      const resp = await fetch('https://rikaaaaaa-promptly.hf.space/convert', {
+        method: 'POST',
+        body:   formData
+      });
 
-      const savedPct = Math.round((1 - info.compressedTokens / info.originalTokens) * 100);
-      const wOut = Math.round(info.originalW * 0.5);
-      const hOut = Math.round(info.originalH * 0.5);
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(err.detail || 'Server error');
+      }
 
-      if (compressionMode === 'text') {
-        const kbSaved = Math.max(0, info.originalKB - info.compressedKB);
+      const data = await resp.json();
+      console.log('[Promptly] Server response:', data);
+      console.log('[Promptly] markdown field:', data.markdown ? data.markdown.slice(0, 100) : 'MISSING');
+      convertedMarkdown = data.markdown;
+
+      const origTokens = data.original_tokens ?? 0;
+      const convTokens = data.converted_tokens ?? 0;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      const wasConverted = !['txt', 'md'].includes(ext);
+
+      pillEl.textContent = '';
+
+      if (wasConverted) {
         statsEl.innerHTML = `
-          <div class="p-stats-row">
-            <span class="p-stats-label">Before</span>
-            <span class="p-stats-val">${info.originalW}×${info.originalH} · ~${info.originalTokens.toLocaleString()}t · ${info.originalKB}KB</span>
+          <div class="p-stats-row" style="color:#D85A30;font-weight:600;">
+            <span>Converted to Markdown</span>
           </div>
           <div class="p-stats-row">
-            <span class="p-stats-label">After</span>
-            <span class="p-stats-val">${wOut}×${hOut} · ~${info.compressedTokens.toLocaleString()}t · ${info.compressedKB}KB</span>
+            <span class="p-stats-label">Original tokens</span>
+            <span class="p-stats-val">${origTokens.toLocaleString()}</span>
           </div>
-          <div class="p-stats-note">Grayscale reduces file size (~${kbSaved}KB), not LLM vision tokens</div>`;
-        pillEl.textContent = `${savedPct}% fewer tokens · ~${kbSaved}KB smaller file`;
+          <div class="p-stats-row">
+            <span class="p-stats-label">Markdown tokens</span>
+            <span class="p-stats-val">${convTokens.toLocaleString()}</span>
+          </div>`;
+        attachBtn.textContent = 'Attach as Markdown';
       } else {
         statsEl.innerHTML = `
           <div class="p-stats-row">
-            <span class="p-stats-label">Before</span>
-            <span class="p-stats-val">${info.originalW}×${info.originalH} · ~${info.originalTokens.toLocaleString()}t · ${info.originalKB}KB</span>
-          </div>
-          <div class="p-stats-row">
-            <span class="p-stats-label">After</span>
-            <span class="p-stats-val">${wOut}×${hOut} · ~${info.compressedTokens.toLocaleString()}t · ${info.compressedKB}KB</span>
+            <span class="p-stats-label">Tokens</span>
+            <span class="p-stats-val">${convTokens.toLocaleString()}</span>
           </div>`;
-        pillEl.textContent = `Saved ${savedPct}% fewer tokens`;
+        attachBtn.textContent = 'Attach to chat';
       }
+      attachBtn.disabled = false;
 
-      insertBtn.disabled    = false;
-      insertBtn.textContent = 'Insert to chat';
-    } else {
-      compressedFile = file;
-      statsEl.innerHTML = `<div class="p-stats-row"><span class="p-stats-label">File</span><span class="p-stats-val">${Math.round(file.size/1024)} KB</span></div>`;
-      pillEl.textContent    = 'Ready to insert';
-      insertBtn.disabled    = false;
-      insertBtn.textContent = 'Insert to chat';
+    } catch (err) {
+      console.error('[Promptly] Conversion failed:', err);
+      statsEl.innerHTML    = '';
+      pillEl.textContent   = '';
+      attachBtn.textContent = 'Attach to chat';
+      attachBtn.disabled   = true;
+      statusEl.className   = 'p-attach-status err';
+      statusEl.textContent = `Conversion failed — ${err.message || 'try a different file'}`;
     }
-
-    resultEl.classList.add('visible');
   }
 
-  fab.querySelector('#p-insert-btn').addEventListener('click', async () => {
-    if (!compressedFile) return;
-    const insertBtn = fab.querySelector('#p-insert-btn');
-    const statusEl  = fab.querySelector('#p-insert-status');
-    insertBtn.disabled = true; insertBtn.textContent = 'Inserting…';
+  fab.querySelector('#p-attach-btn').addEventListener('click', async () => {
+    if (!convertedMarkdown || !convertedFilename) return;
+    const attachBtn = fab.querySelector('#p-attach-btn');
+    const statusEl  = fab.querySelector('#p-attach-status');
+    attachBtn.disabled    = true;
+    attachBtn.textContent = 'Attaching…';
 
-    const strategy = await insertCompressedFile(compressedFile);
+    const result = await attachMarkdownFile(convertedMarkdown, convertedFilename);
 
-    insertBtn.disabled    = false;
-    insertBtn.textContent = 'Insert to chat';
-    if (strategy === 'download') {
-      statusEl.className   = 'p-insert-status warn';
-      statusEl.textContent = '⚠ Downloaded — upload manually';
+    attachBtn.disabled    = false;
+    attachBtn.textContent = 'Attach to chat';
+
+    if (result.method === 'download') {
+      statusEl.className   = 'p-attach-status warn';
+      statusEl.textContent = `⚠ Downloaded ${result.filename} — attach manually`;
     } else {
-      statusEl.className   = 'p-insert-status ok';
-      statusEl.textContent = '✓ Inserted into chat';
+      statusEl.className   = 'p-attach-status ok';
+      statusEl.textContent = `✓ ${result.filename} attached`;
     }
   });
-
-  // ── Context tracker ────────────────────────────────────────────────────────
-  const AVG_TOKENS_PER_MSG = 500;
-  const IMG_TOKENS         = 1700;
-  const COST_PER_TOKEN     = 3.0 / 1_000_000;
-
-  function updateContextTracker() {
-    const msgCount = getMessageCount();
-    const hasImage = hasImageAttachment();
-
-    fab.querySelector('#p-ctx-msgs').textContent   = msgCount || '0';
-    const ctxTokens = msgCount * AVG_TOKENS_PER_MSG;
-    fab.querySelector('#p-ctx-tokens').textContent = ctxTokens.toLocaleString() + 't';
-
-    const imgRow   = fab.querySelector('#p-ctx-img-row');
-    const totalRow = fab.querySelector('#p-ctx-total-row');
-    const tipEl    = fab.querySelector('#p-ctx-tip');
-
-    if (hasImage && msgCount > 0) {
-      const totalImgTokens = msgCount * IMG_TOKENS;
-      const totalCost = ((ctxTokens + totalImgTokens) * COST_PER_TOKEN).toFixed(5);
-      imgRow.style.display   = 'flex';
-      totalRow.style.display = 'flex';
-      fab.querySelector('#p-ctx-img-cost').textContent = `${msgCount}× ${IMG_TOKENS}t = ${totalImgTokens.toLocaleString()}t`;
-      fab.querySelector('#p-ctx-total').textContent    = `~$${totalCost}`;
-      tipEl.style.display  = 'block';
-      tipEl.textContent    = `💡 A complete first prompt saves you paying for this context ${msgCount} more times.`;
-    } else {
-      imgRow.style.display   = 'none';
-      totalRow.style.display = 'none';
-      tipEl.style.display    = 'none';
-    }
-
-    if (msgCount > 5 && hasImage) warnDot.classList.add('visible');
-    else                           warnDot.classList.remove('visible');
-  }
-
-  updateContextTracker();
-
-  let ctxPending = false;
-  const ctxObserver = new MutationObserver(() => {
-    if (ctxPending) return;
-    ctxPending = true;
-    requestAnimationFrame(() => { ctxPending = false; updateContextTracker(); });
-  });
-  ctxObserver.observe(document.body, { childList: true, subtree: true });
 
   // ── Stats renderer ─────────────────────────────────────────────────────────
   function renderStats() {
@@ -1018,7 +920,18 @@ async function optimize() {
 
   fab._showLoading();
 
-  chrome.runtime.sendMessage({ type: 'OPTIMIZE', prompt }, (resp) => {
+  const detected_model = detectModel(window.location.hostname);
+  const { images, pdf_pages } = getAttachmentInfo();
+
+  chrome.runtime.sendMessage({
+    type:      'OPTIMIZE',
+    prompt,
+    hostname:  window.location.hostname,
+    model_key: detected_model,
+    images,
+    pdf_pages
+  }, (resp) => {
+    console.log('[Promptly] response:', resp);
     if (chrome.runtime.lastError || !resp) { fab._showIdle(); return; }
     if (!resp.ok)                          { fab._showIdle(); return; }
 
@@ -1033,14 +946,36 @@ async function optimize() {
   });
 }
 
+// ── Model change watcher ──────────────────────────────────────────────────────
+function watchModelChanges() {
+  const hostname    = window.location.hostname;
+  const platformKey = Object.keys(PRICING_CONFIG.MODEL_SELECTORS)
+    .find(k => hostname.includes(k));
+  if (!platformKey) return;
+
+  const config = PRICING_CONFIG.MODEL_SELECTORS[platformKey];
+  for (const selector of config.selectors) {
+    const el = document.querySelector(selector);
+    if (el) {
+      const observer = new MutationObserver(() => {
+        const model = detectModel(hostname);
+        console.log('[Promptly] Model changed to:', model);
+      });
+      observer.observe(el, { childList: true, subtree: true, characterData: true });
+      break;
+    }
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', createFAB);
+  document.addEventListener('DOMContentLoaded', () => { createFAB(); watchModelChanges(); });
 } else {
   createFAB();
+  watchModelChanges();
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
   console.log('[Promptly] message received:', msg);
-  if (msg.action === 'optimize') optimize();
+  if (msg.type === 'OPTIMIZE') optimize();
 });

@@ -121,6 +121,7 @@ def restructure_reward(example, prediction, trace=None) -> float:
             "the answer is"
         ]
     )
+    not_json = not structured.strip().startswith('{')
     return (
         not_json + saves_tokens +
         has_structure + not_answering

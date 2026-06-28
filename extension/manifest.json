@@ -3,7 +3,7 @@
   "name": "Promptly",
   "version": "1.0.0",
   "description": "Optimize prompts before you send them — free, instant.",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting", "commands", "alarms"],
   "host_permissions": [
     "https://claude.ai/*",
     "https://chat.openai.com/*",
@@ -45,9 +45,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://claude.ai/*", "https://chat.openai.com/*", "https://*.chatgpt.com/*", "https://gemini.google.com/*", "https://copilot.microsoft.com/*"],
-      "js": ["content.js"],
+      "matches": ["*://claude.ai/*", "*://chat.openai.com/*", "*://*.chatgpt.com/*", "*://gemini.google.com/*", "*://copilot.microsoft.com/*"],
+      "js": ["pricing.js", "content.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pricing.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

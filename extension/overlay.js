@@ -114,7 +114,7 @@ window.PromptlyOverlay = (() => {
     /* ── Metrics row ── */
     #promptly-overlay .p-metrics {
       display: grid;
-      grid-template-columns: repeat(4, 1fr) 1.25fr;
+      grid-template-columns: 1fr 1fr;
       gap: 0;
       border-bottom: 1px solid rgba(0,0,0,.07);
     }
@@ -355,6 +355,67 @@ window.PromptlyOverlay = (() => {
       padding: 3px 10px;
       white-space: nowrap;
     }
+
+    /* ── Cost section ── */
+    #promptly-overlay .cost-section {
+      background: #fff5f3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 8px 14px;
+      font-size: 11px;
+      color: #555;
+    }
+    #promptly-overlay .cost-unknown {
+      color: #999;
+      font-style: italic;
+    }
+    #promptly-overlay .cost-header {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #999;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    #promptly-overlay .cost-model {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    #promptly-overlay .cost-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    #promptly-overlay .cost-total {
+      font-weight: 700;
+      color: #c0392b;
+      font-size: 12px;
+      padding-top: 4px;
+    }
+    #promptly-overlay .cost-divider {
+      border-top: 1px solid #e8d5d0;
+      margin: 4px 0;
+    }
+    #promptly-overlay .cost-rates {
+      color: #999;
+      margin-top: 6px;
+      font-size: 10px;
+    }
+    #promptly-overlay .cost-note {
+      color: #c0392b;
+      margin-top: 4px;
+      font-size: 10px;
+    }
+    #promptly-overlay .cost-source {
+      margin-top: 6px;
+      font-size: 10px;
+    }
+    #promptly-overlay .cost-source a {
+      color: #c0392b;
+      text-decoration: none;
+    }
   `;
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -377,6 +438,69 @@ window.PromptlyOverlay = (() => {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  // ── Cost section renderer ────────────────────────────────────────────────────
+  function renderCostSection(cost_data) {
+    if (!cost_data) {
+      return `
+        <div class="cost-section cost-unknown">
+          💰 Model not detected — select model in platform UI for cost estimate
+        </div>`;
+    }
+
+    const { model, costs, rates, pricing_source,
+            pricing_updated, image_count, pdf_pages, note } = cost_data;
+
+    const image_line = costs.image
+      ? `<div class="cost-row">
+           <span>Images (${image_count})</span>
+           <span>${costs.image}</span>
+         </div>`
+      : "";
+
+    const pdf_line = costs.pdf
+      ? `<div class="cost-row">
+           <span>PDF (~${pdf_pages} pages)</span>
+           <span>${costs.pdf}</span>
+         </div>`
+      : "";
+
+    const note_line = note
+      ? `<div class="cost-note">⚠️ ${escHtml(note)}</div>`
+      : "";
+
+    return `
+      <div class="cost-section">
+        <div class="cost-header">💰 Cost Estimate</div>
+        <div class="cost-model">${escHtml(model)}</div>
+        <div class="cost-row">
+          <span>Text input</span>
+          <span>${costs.text_input}</span>
+        </div>
+        ${image_line}
+        ${pdf_line}
+        <div class="cost-row">
+          <span>Output</span>
+          <span>${costs.output}</span>
+        </div>
+        <div class="cost-divider"></div>
+        <div class="cost-row cost-total">
+          <span>Total</span>
+          <span>${costs.total}</span>
+        </div>
+        <div class="cost-rates">
+          ${rates.input_per_1m} input /
+          ${rates.output_per_1m} output per 1M tokens
+        </div>
+        ${note_line}
+        <div class="cost-source">
+          <a href="${escHtml(pricing_source)}" target="_blank">
+            Official pricing ↗
+          </a>
+          · Updated ${escHtml(pricing_updated)}
+        </div>
+      </div>`;
   }
 
   // ── Loading ──────────────────────────────────────────────────────────────────
@@ -403,7 +527,7 @@ window.PromptlyOverlay = (() => {
   }
 
   // ── Result ───────────────────────────────────────────────────────────────────
-  function showResult({ original, optimized, explanation, tokensBefore, tokensAfter, modeName, imageInfo = null, onUse }) {
+  function showResult({ original, optimized, explanation, tokensBefore, tokensAfter, modeName, imageInfo = null, cost_data = null, onUse }) {
     injectStyles();
     remove();
 
@@ -416,18 +540,6 @@ window.PromptlyOverlay = (() => {
       : tokensAfter > tokensBefore
         ? "↑ expanded"
         : "restructured";
-
-    // Cost estimates using claude-sonnet $3/MTok input
-    const COST_PER_TOKEN = 3.0 / 1_000_000;
-    const promptSaving   = Math.max(0, tokensBefore - tokensAfter) * COST_PER_TOKEN;
-    const costSaved      = promptSaving > 0
-      ? `$${promptSaving.toFixed(5)}`
-      : "$0.00000";
-
-    const turnsNum  = savedPct >= 30 ? 2 : savedPct >= 10 ? 1 : 0;
-    const turnsSaved = turnsNum > 0 ? `~${turnsNum}` : "0";
-    const totalSaved = promptSaving + promptSaving * turnsNum;
-    const realSavings = `$${totalSaved.toFixed(5)}`;
 
     const imageRow = imageInfo ? `
       <div class="p-image-row">
@@ -465,19 +577,6 @@ window.PromptlyOverlay = (() => {
           <div class="p-metric-label">Optimized</div>
           <div class="p-metric-value">${tokensAfter}</div>
         </div>
-        <div class="p-metric">
-          <div class="p-metric-label">Cost Saved</div>
-          <div class="p-metric-value savings">${costSaved}</div>
-        </div>
-        <div class="p-metric">
-          <div class="p-metric-label">Turns Saved</div>
-          <div class="p-metric-value savings">${turnsSaved}</div>
-        </div>
-        <div class="p-metric real-savings">
-          <div class="p-metric-label">Real Savings</div>
-          <div class="p-metric-value">${realSavings}</div>
-          <div class="p-metric-sub">incl. avoided context</div>
-        </div>
       </div>
 
       ${imageRow}
@@ -498,6 +597,8 @@ window.PromptlyOverlay = (() => {
           <div class="p-text">${escHtml(optimized)}</div>
         </div>
       </div>
+
+      ${renderCostSection(cost_data)}
 
       ${explanation ? `
       <div class="p-explanation">
