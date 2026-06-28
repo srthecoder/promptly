@@ -7,9 +7,7 @@ async function checkServer() {
     const data = await res.json()
 
     dotEl.style.background = "#2d9e4f"
-    statusEl.textContent = data.compiled
-      ? "DSPy server running · compiled"
-      : "DSPy server running · uncompiled"
+    statusEl.textContent = "DSPy server running"
 
   } catch {
     dotEl.style.background = "#c0392b"

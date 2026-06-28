@@ -1,0 +1,1029 @@
+{
+  "run_id": "20260627_182749",
+  "timestamp": "2026-06-27T18:27:49.166048",
+  "config": {
+    "pipeline_model": "groq/llama-3.3-70b-versatile",
+    "judge_model": "github-models/gpt-4o-mini",
+    "judge_endpoint": "models.inference.ai.azure.com",
+    "method": "G-Eval 4-dimension rubric normalized 0-1",
+    "dimensions": [
+      "intent_preservation",
+      "format_correctness",
+      "constraint_adherence",
+      "token_efficiency"
+    ],
+    "num_threads": 1,
+    "delay_secs": 12,
+    "dataset_size": 30
+  },
+  "summary": {
+    "dspy_score_pct": 89.58,
+    "normalized_mean": 0.896,
+    "statistics": {
+      "overall": {
+        "mean": 0.896,
+        "min": 0.625,
+        "max": 1.0,
+        "std": 0.097,
+        "count": 30
+      },
+      "intent": {
+        "mean": 0.983,
+        "min": 0.5,
+        "max": 1.0,
+        "std": 0.09,
+        "count": 30
+      },
+      "format": {
+        "mean": 0.967,
+        "min": 0.5,
+        "max": 1.0,
+        "std": 0.125,
+        "count": 30
+      },
+      "constraint": {
+        "mean": 0.95,
+        "min": 0.5,
+        "max": 1.0,
+        "std": 0.15,
+        "count": 30
+      },
+      "efficiency": {
+        "mean": 0.683,
+        "min": 0.5,
+        "max": 1.0,
+        "std": 0.241,
+        "count": 30
+      },
+      "token_savings_pct": {
+        "mean": -69.33,
+        "min": -1300.0,
+        "max": 61.4,
+        "std": 239.243,
+        "count": 30
+      }
+    }
+  },
+  "per_example": [
+    {
+      "raw_prompt": "Hey so I was doing some reading and I came across this topic and I was really curious. Could you maybe explain the difference between supervised and unsupervised machine learning? Thanks so much!",
+      "structured": "\n## Task\nExplain the difference between supervised and unsupervised machine learning\n## Style\n[Style:Simple]\n## Output\nOne or two paragraphs",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler and applied markdown template abstraction.",
+      "token_metrics": {
+        "tokens_before": 43,
+        "tokens_after": 26,
+        "token_delta": 17,
+        "pct_saved": 39.5
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "constraint": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.625
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent of explaining the difference between supervised and unsupervised machine learning. However, the format choice of markdown is not optimal for the simplicity of the request, and the style instruction could be clearer."
+    },
+    {
+      "raw_prompt": "i was wondering if you could help me understand what the difference is between TCP and UDP protocols i keep seeing these terms but dont really get it",
+      "structured": "\n## Task\nExplain difference between TCP and UDP protocols\n## Style\n[Style:Simple]\n## Output\nTwo paragraphs, comparison table",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 36,
+        "tokens_after": 23,
+        "token_delta": 13,
+        "pct_saved": 36.1
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly asking for a comparison between TCP and UDP protocols. However, the output length is similar to the input, which could be improved for better token efficiency."
+    },
+    {
+      "raw_prompt": "sorry to bother you but could you maybe explain what a transformer model is in AI i have heard about it but am not sure how it works exactly",
+      "structured": "\n## Task\nExplain transformer model in AI\n## Style\n[Style:Simple] [Include:Examples]\n## Output\nOne paragraph, technical details",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler and applied markdown template abstraction.",
+      "token_metrics": {
+        "tokens_before": 38,
+        "tokens_after": 22,
+        "token_delta": 16,
+        "pct_saved": 42.1
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "constraint": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.625
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent of explaining a transformer model in AI. However, it could improve by better aligning the output format with the complexity of the request and ensuring all style instructions are explicitly followed."
+    },
+    {
+      "raw_prompt": "Please write in a professional but friendly tone. Avoid jargon. Keep it short. Give examples. Explain compound interest.",
+      "structured": "\n## Task\nExplain compound interest\n## Style\n[Style:Professional] [Style:Friendly] [Style:NoJargon] [Style:Concise] [Include:Examples]\n## Output\nOne paragraph, one numerical example",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction, and added style instructions.",
+      "token_metrics": {
+        "tokens_before": 23,
+        "tokens_after": 25,
+        "token_delta": -2,
+        "pct_saved": -8.7
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and including all style instructions. However, it could be more concise, as the output format is slightly longer than necessary for the given task."
+    },
+    {
+      "raw_prompt": "write in a casual conversational tone avoid being too formal and please use bullet points and keep sentences short explain what a 401k is",
+      "structured": "\n## Task\nExplain what a 401k is\n## Style\n[Style:Casual] [Format:Bullets]\n## Output\nUse short sentences, bullet points",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction, and added style instructions.",
+      "token_metrics": {
+        "tokens_before": 31,
+        "tokens_after": 23,
+        "token_delta": 8,
+        "pct_saved": 25.8
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and style requirements. However, it could be more concise by eliminating some redundancy in the output instructions."
+    },
+    {
+      "raw_prompt": "be thorough and comprehensive use headers and sections provide citations where possible explain the history of the internet",
+      "structured": "\n  <task>Explain the history of the internet</task>\n  <output>\n    <section>Introduction to the internet: 1 paragraph</section>\n    <section>History of the internet: 3 paragraphs</section>\n    <section>Key milestones and developments: timeline</section>\n    <section>Impact of the internet on society: 2 paragraphs</section>\n    <section>Citations and references</section>\n  </output>\n  <style>[Style:Thorough] [Style:Comprehensive] [Include:Citations]</style>\n  <audience>[Audience:General]</audience>",
+      "format_used": "xml",
+      "explanation": "Removed conversational filler, applied XML template abstraction for a comprehensive and thorough explanation with headers, sections, and citations.",
+      "token_metrics": {
+        "tokens_before": 23,
+        "tokens_after": 52,
+        "token_delta": -29,
+        "pct_saved": -126.1
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by outlining a comprehensive approach to explaining the history of the internet. However, while it maintains clarity, the output is slightly longer than necessary, which could be improved for token efficiency."
+    },
+    {
+      "raw_prompt": "hey could you help me write a python function that sorts a list of dicts by age descending and handles missing age values",
+      "structured": "Task: sort list of dicts by age desc | Handle: null ages | Output: python function, inline comments",
+      "format_used": "pipe",
+      "explanation": "Removed conversational filler, applied pipe template abstraction for a simple function request.",
+      "token_metrics": {
+        "tokens_before": 30,
+        "tokens_after": 23,
+        "token_delta": 7,
+        "pct_saved": 23.3
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent of sorting a list of dictionaries by age while addressing missing values. It is concise and uses the appropriate pipe format for the complexity of the task."
+    },
+    {
+      "raw_prompt": "i need help writing a sql query that finds all customers who have placed more than 3 orders in the last 30 days and have spent more than 100 dollars total",
+      "structured": "\n<task>SQL query for frequent customers</task>\n<output>\n  <section>Find customers with more than 3 orders in the last 30 days</section>\n  <section>Filter customers who have spent more than 100 dollars total</section>\n  <section>Return: customer IDs, total orders, total spent</section>\n</output>\n<constraints>\n  <constraint>Timeframe: last 30 days</constraint>\n  <constraint>Order threshold: more than 3</constraint>\n  <constraint>Spend threshold: more than 100 dollars</constraint>\n</constraints>\n<requirements>\n  <requirement>Use SQL</requirement>\n  <requirement>Include table and column names</requirement>\n</requirements>",
+      "format_used": "xml",
+      "explanation": "Removed conversational filler, applied XML template abstraction for complex query.",
+      "token_metrics": {
+        "tokens_before": 40,
+        "tokens_after": 81,
+        "token_delta": -41,
+        "pct_saved": -102.5
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly outlining the requirements for the SQL query. However, it could be more concise by reducing redundancy in the sections and constraints, which would improve token efficiency."
+    },
+    {
+      "raw_prompt": "can you write a javascript function that takes an array of strings and returns only the unique values without using a Set please include error handling",
+      "structured": "\n## Task\nWrite a JavaScript function that takes an array of strings and returns only the unique values\n## Style\n[Style:Concise] [Include:ErrorHandling]\n## Output\nOne function, inline comments, no console logs",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction, and added style instructions for error handling and code output.",
+      "token_metrics": {
+        "tokens_before": 34,
+        "tokens_after": 40,
+        "token_delta": -6,
+        "pct_saved": -17.6
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and including style instructions. However, it could be more concise by omitting some details that may not be necessary for the prompt's clarity."
+    },
+    {
+      "raw_prompt": "I need a competitive analysis starting with market overview then competitor breakdown with pricing and features then SWOT then three strategic recommendations",
+      "structured": "\n  <task>Competitive analysis</task>\n  <output>\n    <section>Market overview: 2 paragraphs</section>\n    <section>Competitor breakdown: pricing and features</section>\n    <section>SWOT analysis</section>\n    <section>3 strategic recommendations</section>\n  </output>\n  ",
+      "format_used": "xml",
+      "explanation": "Removed conversational filler, applied XML template abstraction for complex multi-section prompt.",
+      "token_metrics": {
+        "tokens_before": 29,
+        "tokens_after": 23,
+        "token_delta": 6,
+        "pct_saved": 20.7
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt accurately preserves the original intent by clearly outlining the required sections for the competitive analysis. Additionally, it adheres to the constraints and is formatted correctly in XML, while being concise and efficient."
+    },
+    {
+      "raw_prompt": "write a product requirements document for a mobile app that tracks daily water intake include user stories acceptance criteria and technical requirements and success metrics",
+      "structured": "\n  <task>Product Requirements Document</task>\n  <output>\n    <section>Mobile App: Daily Water Intake Tracker</section>\n    <section>User Stories:\n      <story>As a user, I want to log my daily water intake.</story>\n      <story>As a user, I want to set reminders to drink water.</story>\n    </section>\n    <section>Acceptance Criteria:\n      <criteria>App allows users to input daily water intake.</criteria>\n      <criteria>App sends reminders to drink water at set times.</criteria>\n    </section>\n    <section>Technical Requirements:\n      <requirement>Developed for iOS and Android.</requirement>\n      <requirement>Integrates with Apple Health and Google Fit.</requirement>\n    </section>\n    <section>Success Metrics:\n      <metric>Number of daily active users.</metric>\n      <metric>Average daily water intake per user.</metric>\n    </section>\n  </output>",
+      "format_used": "xml",
+      "explanation": "Removed conversational filler, applied XML template abstraction for complex requirements document.",
+      "token_metrics": {
+        "tokens_before": 32,
+        "tokens_after": 110,
+        "token_delta": -78,
+        "pct_saved": -243.8
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt successfully preserves the original intent by clearly outlining the product requirements for the mobile app. Additionally, it adheres to the constraints and uses the correct XML format, while being concise and efficient in its presentation."
+    },
+    {
+      "raw_prompt": "create a comprehensive business plan for a coffee shop including executive summary market analysis operations plan financial projections and risk assessment",
+      "structured": "\n  <task>Comprehensive Business Plan</task>\n  <sections>\n    <section>Executive Summary: 1 page</section>\n    <section>Market Analysis: market research, target audience, competition</section>\n    <section>Operations Plan: management, staffing, logistics, supply chain</section>\n    <section>Financial Projections: revenue, expenses, break-even analysis, funding requirements</section>\n    <section>Risk Assessment: potential risks, mitigation strategies, contingency plans</section>\n  </sections>\n  <output>\n    <format>[Format:Detailed]</format>\n    <style>[Style:Professional]</style>\n    <include>[Include:Examples]</include>\n    <depth>[Depth:Thorough]</depth>\n  </output>",
+      "format_used": "xml",
+      "explanation": "Removed filler, applied XML template abstraction for comprehensive business plan.",
+      "token_metrics": {
+        "tokens_before": 27,
+        "tokens_after": 58,
+        "token_delta": -31,
+        "pct_saved": -114.8
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly outlining the components of a comprehensive business plan. However, the output is slightly longer than the input, which could be improved for better token efficiency."
+    },
+    {
+      "raw_prompt": "explain docker to someone with no technical background",
+      "structured": "\n## Task\nExplain Docker to a non-technical audience\n## Style\n[Style:Simple] [Audience:NonTechnical]\n## Output\nOne to two paragraphs, analogies or relatable examples",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 10,
+        "tokens_after": 29,
+        "token_delta": -19,
+        "pct_saved": -190.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent of explaining Docker to a non-technical audience while incorporating style instructions. However, the output length is similar to the input, which could be improved for better token efficiency."
+    },
+    {
+      "raw_prompt": "what is the difference between a mutex and a semaphore",
+      "structured": "\n## Task\nExplain the difference between a mutex and a semaphore\n## Style\n[Style:Technical] [Include:Examples]\n## Output\nTwo paragraphs, code snippets",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity question.",
+      "token_metrics": {
+        "tokens_before": 13,
+        "tokens_after": 27,
+        "token_delta": -14,
+        "pct_saved": -107.7
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.75
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly asking for a comparison between a mutex and a semaphore. However, it includes additional style and output instructions that may not be necessary for a simple explanation, which could be streamlined for efficiency."
+    },
+    {
+      "raw_prompt": "explain recursion using a simple real world example",
+      "structured": "\n## Task\nExplain recursion\n## Style\n[Style:Simple]\n## Output\nOne paragraph, real world example",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 10,
+        "tokens_after": 18,
+        "token_delta": -8,
+        "pct_saved": -80.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly specifying the task and style. However, it could be more concise by reducing unnecessary words in the output section."
+    },
+    {
+      "raw_prompt": "i need to explain to my grandmother what cloud storage is she is 75 years old and has never used a computer much can you help me write something she would understand",
+      "structured": "\n## Task\nExplain cloud storage to a 75-year-old non-technical person\n## Style\n[Style:Simple] [Audience:NonTechnical]\n## Output\nOne short paragraph, relatable analogies",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for simplicity and clarity.",
+      "token_metrics": {
+        "tokens_before": 42,
+        "tokens_after": 27,
+        "token_delta": 15,
+        "pct_saved": 35.7
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent of explaining cloud storage in a simple manner for a non-technical audience. It adheres to all constraints, including style and format, while being concise and clear."
+    },
+    {
+      "raw_prompt": "explain what inflation is to a 10 year old using examples they would relate to like candy or toys",
+      "structured": "\n## Task\nExplain inflation to a 10-year-old\n## Style\n[Style:Simple] [Audience:Children] [Include:Examples]\n## Output\nOne or two paragraphs, relatable examples like candy or toys",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity prompt.",
+      "token_metrics": {
+        "tokens_before": 25,
+        "tokens_after": 31,
+        "token_delta": -6,
+        "pct_saved": -24.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and specifying the audience and style. However, it could be more concise by reducing the length of the output instruction without losing clarity."
+    },
+    {
+      "raw_prompt": "my boss asked me to explain what an API is to the sales team who have no technical background can you help me write a simple explanation with an analogy",
+      "structured": "\n## Task\nExplain API to non-technical sales team\n## Style\n[Style:Simple] [Audience:NonTechnical] [Include:Analogy]\n## Output\nOne paragraph, one relatable analogy",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, detected style instructions, and chose markdown format for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 39,
+        "tokens_after": 26,
+        "token_delta": 13,
+        "pct_saved": 33.3
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and specifying the audience and style. However, it could be more concise by eliminating some redundant phrases, which would improve token efficiency."
+    },
+    {
+      "raw_prompt": "write a short blog post about why sleep is important for productivity keep it under 300 words use a friendly casual tone and include 3 actionable tips",
+      "structured": "\n## Task\nExplain importance of sleep for productivity\n## Style\n[Style:Friendly] [Style:Casual] [Length:Under300]\n## Output\nBlog post with 3 actionable tips",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction, and added style and output instructions.",
+      "token_metrics": {
+        "tokens_before": 35,
+        "tokens_after": 27,
+        "token_delta": 8,
+        "pct_saved": 22.9
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and requirements. It adheres to all constraints and is concise, making it efficient while maintaining clarity."
+    },
+    {
+      "raw_prompt": "i need a linkedin post announcing my new job at a startup should be professional but not boring and end with something that encourages comments",
+      "structured": "\n## Task\nCreate a LinkedIn post announcing a new job at a startup\n## Style\n[Style:Professional] [Tone:Engaging]\n## Output\nOne paragraph, ending with a comment-encouraging question",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for a medium complexity prompt.",
+      "token_metrics": {
+        "tokens_before": 32,
+        "tokens_after": 34,
+        "token_delta": -2,
+        "pct_saved": -6.2
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent of creating a LinkedIn post while incorporating the necessary style and format instructions. However, it could be more concise to improve token efficiency without losing any details."
+    },
+    {
+      "raw_prompt": "write a cold email to a potential client who runs a medium sized ecommerce store offering our email marketing services keep it short and focused on their pain points",
+      "structured": "\n## Task\nWrite a cold email to a potential client who runs a medium sized ecommerce store |\n## Style\n[Style:Professional] [Style:Concise] |\n## Output\nOne short paragraph, focused on their pain points, offering email marketing services",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity prompt.",
+      "token_metrics": {
+        "tokens_before": 38,
+        "tokens_after": 48,
+        "token_delta": -10,
+        "pct_saved": -26.3
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly specifying the task and focusing on the client's pain points. It adheres to all constraints and is concise, making it efficient in terms of token usage."
+    },
+    {
+      "raw_prompt": "i have a csv with columns date revenue customers and region i need you to help me write pandas code to find the top 3 regions by revenue growth month over month",
+      "structured": "\n## Task\nWrite pandas code to find top 3 regions by revenue growth month over month\n## Input\nCSV file with columns: date, revenue, customers, region\n## Style\n[Style:Concise] [Output:Code]\n## Output\nTop 3 regions by revenue growth, month over month",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 42,
+        "tokens_after": 53,
+        "token_delta": -11,
+        "pct_saved": -26.2
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent and provides clear instructions for the task. However, the output section could be more concise, as it repeats the intent of the task rather than providing a specific format for the output."
+    },
+    {
+      "raw_prompt": "explain the difference between mean median and mode and when you should use each one with real world examples",
+      "structured": "\n## Task\nExplain the difference between mean, median, and mode\n## Style\n[Style:Simple] [Include:Examples]\n## Output\nThree paragraphs, real-world examples for each statistic",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity prompt.",
+      "token_metrics": {
+        "tokens_before": 25,
+        "tokens_after": 30,
+        "token_delta": -5,
+        "pct_saved": -20.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly outlining the task and including style instructions. However, it could be more concise by reducing the output length while maintaining clarity."
+    },
+    {
+      "raw_prompt": "i need to summarize this dataset that shows monthly sales figures by product category the goal is to identify which categories are declining and might need attention",
+      "structured": "\n## Task\nSummarize monthly sales figures by product category\n## Goal\nIdentify declining categories needing attention\n## Output\nBullet points, top 3 declining categories",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 35,
+        "tokens_after": 31,
+        "token_delta": 4,
+        "pct_saved": 11.4
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly stating the task and goal. It also adheres to the constraints and is concise, making it efficient in terms of token usage."
+    },
+    {
+      "raw_prompt": "my react app keeps showing a white screen after i added a new component i checked the console and it says cannot read properties of undefined reading map can you help",
+      "structured": "\n## Task\nDebug React app white screen issue\n## Error\nCannot read properties of undefined, reading 'map'\n## Context\nRecently added new component\n## Output\nStep-by-step troubleshooting guide",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity issue description.",
+      "token_metrics": {
+        "tokens_before": 40,
+        "tokens_after": 36,
+        "token_delta": 4,
+        "pct_saved": 10.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly outlining the task, error, and context. However, it could be more concise by eliminating some redundancy in the output section, which could improve token efficiency."
+    },
+    {
+      "raw_prompt": "my python script is running really slowly it processes about 100k rows of data and takes 20 minutes is there a way to make it faster without changing the logic too much",
+      "structured": "\n## Task\nOptimize Python script performance\n## Context\n100k rows of data, current processing time: 20 minutes\n## Style\n[Style:Concise] [Include:Examples]\n## Output\nOne paragraph, potential optimization strategies",
+      "format_used": "markdown",
+      "explanation": "Removed conversational filler, applied markdown template abstraction for medium complexity.",
+      "token_metrics": {
+        "tokens_before": 42,
+        "tokens_after": 36,
+        "token_delta": 6,
+        "pct_saved": 14.3
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent and provides a clear context for optimization. However, the output length is similar to the input, which could be improved for better token efficiency."
+    },
+    {
+      "raw_prompt": "i deployed my fastapi app to aws ec2 and it works locally but returns 502 bad gateway in production i am using nginx as a reverse proxy what should i check",
+      "structured": "\n  <task>Troubleshoot 502 Bad Gateway</task>\n  <context>\n    <environment>AWS EC2</environment>\n    <framework>FastAPI</framework>\n    <reverse_proxy>NGINX</reverse_proxy>\n  </context>\n  <output>\n    <section>Check EC2 instance logs for errors</section>\n    <section>Verify NGINX configuration for reverse proxy settings</section>\n    <section>Confirm FastAPI app is running and listening on expected port</section>\n    <section>Review security group rules for inbound traffic</section>\n  </output>",
+      "format_used": "xml",
+      "explanation": "Removed conversational filler, applied XML template abstraction for complex troubleshooting scenario.",
+      "token_metrics": {
+        "tokens_before": 40,
+        "tokens_after": 55,
+        "token_delta": -15,
+        "pct_saved": -37.5
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively preserves the original intent by clearly outlining the troubleshooting steps for the 502 Bad Gateway error. Additionally, it adheres to the constraints and uses the appropriate XML format for the complexity of the task."
+    },
+    {
+      "raw_prompt": "?",
+      "structured": "Task: provide input | Handle: null input | Output: explanation only",
+      "format_used": "pipe",
+      "explanation": "No changes were made as the input prompt was empty.",
+      "token_metrics": {
+        "tokens_before": 1,
+        "tokens_after": 14,
+        "token_delta": -13,
+        "pct_saved": -1300.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt effectively captures the original intent while adhering to the specified format. It is concise and maintains all constraints without unnecessary elaboration."
+    },
+    {
+      "raw_prompt": "write me something",
+      "structured": "Task: write something |",
+      "format_used": "pipe",
+      "explanation": "Removed conversational filler, applied minimal structure due to lack of specific instructions.",
+      "token_metrics": {
+        "tokens_before": 4,
+        "tokens_after": 5,
+        "token_delta": -1,
+        "pct_saved": -25.0
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 1.0
+      },
+      "reasoning": "The restructured prompt maintains the original intent perfectly by clearly stating the task. Additionally, the use of the pipe format is appropriate for the simplicity of the request, and the output is concise and efficient."
+    },
+    {
+      "raw_prompt": "hey so i was like thinking about asking you something but i forgot what it was but maybe you can help me with something related to like coding or maybe writing im not sure",
+      "structured": "Task: assist with coding or writing | Handle: unclear topic | Output: suggestions",
+      "format_used": "pipe",
+      "explanation": "Removed conversational filler and applied simplification to identify the core intent of seeking help with either coding or writing.",
+      "token_metrics": {
+        "tokens_before": 44,
+        "tokens_after": 17,
+        "token_delta": 27,
+        "pct_saved": 61.4
+      },
+      "judge_scores": {
+        "intent": {
+          "raw": 2,
+          "normalized": 0.5
+        },
+        "format": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "constraint": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "efficiency": {
+          "raw": 3,
+          "normalized": 1.0
+        },
+        "mean": 0.875
+      },
+      "reasoning": "The restructured prompt maintains the core intent of seeking help with coding or writing, but some details about the uncertainty are lost. The format is appropriate for the simplicity of the request, and the output is concise and efficient."
+    }
+  ]
+}

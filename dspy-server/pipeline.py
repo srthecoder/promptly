@@ -91,22 +91,20 @@ class RestructureSignature(dspy.Signature):
     output: OptimizedPromptOutput = dspy.OutputField()
 
 
-def restructure_reward(args, pred) -> float:
+def restructure_reward(example, prediction, trace=None) -> float:
     """
     Reward function for dspy.Refine and MIPROv2 metric.
     Returns 0.0 to 1.0. Four criteria, equally weighted.
     """
     try:
-        structured = pred.output.structured
+        structured = prediction.output.structured
     except Exception:
         return 0.0
 
-    not_json = not structured.strip().startswith("{")
-    raw = (
-        args.get("raw_prompt", "")
-        if isinstance(args, dict)
-        else getattr(args, "raw_prompt", "")
-    )
+    if isinstance(example, dict):
+        raw = example.get("raw_prompt", "")
+    else:
+        raw = getattr(example, "raw_prompt", "")
     saves_tokens = (
         len(structured.split()) < len(raw.split())
     )

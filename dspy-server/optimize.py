@@ -167,32 +167,30 @@ TRAINSET = [
 
 
 def compile_pipeline():
-    # Student: Groq (free, runs compiled program)
+    groq_key = os.environ["GROQ_API_KEY"]
+
     student_lm = dspy.LM(
         model="groq/llama-3.3-70b-versatile",
-        api_key=os.environ["GROQ_API_KEY"],
+        api_key=groq_key,
         temperature=0.1
     )
     dspy.configure(lm=student_lm)
 
-    # Teacher: Claude (better trace generation)
-    # Correct pattern from DSPy cheatsheet:
-    # teacher_settings=dict(lm=teacher_lm)
     teacher_lm = dspy.LM(
-        model="anthropic/claude-sonnet-4-6",
-        api_key=os.environ["ANTHROPIC_API_KEY"],
+        model="groq/llama-3.3-70b-versatile",
+        api_key=groq_key,
         temperature=0.1
     )
 
     print("Compiling with MIPROv2...")
     print(f"Student: groq/llama-3.3-70b-versatile")
-    print(f"Teacher: anthropic/claude-sonnet-4-6")
+    print(f"Teacher: groq/llama-3.3-70b-versatile")
     print(f"Examples: {len(TRAINSET)}")
 
     teleprompter = MIPROv2(
         metric=restructure_reward,
         auto="light",
-        teacher_settings=dict(lm=teacher_lm)
+        num_threads=1,
     )
 
     pipeline = PromptlyPipeline()
@@ -200,8 +198,8 @@ def compile_pipeline():
     compiled = teleprompter.compile(
         pipeline.deepcopy(),
         trainset=TRAINSET,
-        max_bootstrapped_demos=3,
-        max_labeled_demos=4,
+        max_bootstrapped_demos=2,
+        max_labeled_demos=2,
     )
 
     os.makedirs("compiled", exist_ok=True)
