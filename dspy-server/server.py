@@ -4,12 +4,18 @@ import csv
 import json
 import dspy
 import tiktoken
+import base64
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pipeline import PromptlyPipeline
+import requests
 
 enc = tiktoken.get_encoding("cl100k_base")
+
+# Datalab API configuration (Marker-powered)
+DATALAB_API_KEY = os.environ.get("DATALAB_API_KEY")
+DATALAB_CONVERT_ENDPOINT = "https://www.datalab.to/api/v1/convert"
 
 app = FastAPI(title="Promptly DSPy Server")
 
@@ -129,26 +135,129 @@ def csv_to_markdown_kv(content: str) -> str:
     return "\n".join(result)
 
 
-def pdf_to_text(file_bytes: bytes) -> str:
+def pdf_to_markdown(file_bytes: bytes) -> str:
+    """Convert PDF to markdown using Datalab API (Marker-powered)"""
+    if not DATALAB_API_KEY:
+        print("[convert] Datalab API key not configured, using fallback")
+        return pdf_to_markdown_fallback(file_bytes)
+    
     try:
-        import fitz  # pymupdf
+        # Call Datalab convert API with PDF file
+        response = requests.post(
+            DATALAB_CONVERT_ENDPOINT,
+            headers={
+                "X-API-Key": DATALAB_API_KEY
+            },
+            files={
+                "file": ("document.pdf", io.BytesIO(file_bytes), "application/pdf")
+            },
+            timeout=120
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            # Datalab returns request_id and request_check_url for async polling
+            # For now, check if markdown is in the response
+            markdown = result.get("markdown", "")
+            if markdown and len(markdown.strip()) > 50:
+                print(f"[convert] Datalab API success: {len(markdown)} chars")
+                return markdown.strip()
+            else:
+                # Try polling if async
+                request_id = result.get("request_id")
+                if request_id:
+                    markdown = _poll_datalab_result(request_id)
+                    if markdown:
+                        return markdown
+                print(f"[convert] Datalab returned empty/incomplete result, using fallback")
+                return pdf_to_markdown_fallback(file_bytes)
+        else:
+            error_msg = response.json().get("message", response.text) if response.text else f"Status {response.status_code}"
+            print(f"[convert] Datalab API error {response.status_code}: {error_msg}")
+            return pdf_to_markdown_fallback(file_bytes)
+            
+    except Exception as e:
+        print(f"[convert] Datalab API failed: {e}, using fallback")
+        return pdf_to_markdown_fallback(file_bytes)
+
+
+def _poll_datalab_result(request_id: str, max_polls: int = 60) -> str:
+    """Poll Datalab API for async conversion result"""
+    import time
+    
+    poll_url = f"https://www.datalab.to/api/v1/convert/{request_id}"
+    
+    for attempt in range(max_polls):
+        try:
+            response = requests.get(
+                poll_url,
+                headers={"X-API-Key": DATALAB_API_KEY},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                markdown = result.get("markdown")
+                if markdown and len(markdown.strip()) > 50:
+                    print(f"[convert] Datalab poll success (attempt {attempt+1}): {len(markdown)} chars")
+                    return markdown.strip()
+                
+                # Still processing
+                time.sleep(2)
+            else:
+                print(f"[convert] Datalab poll error {response.status_code} on attempt {attempt+1}")
+                return ""
+                
+        except Exception as e:
+            print(f"[convert] Datalab poll failed (attempt {attempt+1}): {e}")
+            return ""
+    
+    print(f"[convert] Datalab poll timeout after {max_polls} attempts")
+    return ""
+
+
+def pdf_to_markdown_fallback(file_bytes: bytes) -> str:
+    """Fallback PDF extraction when Adobe API unavailable"""
+    # Fallback 1: pdfplumber with tables
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            full_text = []
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        if table:
+                            full_text.append("")
+                            header = table[0]
+                            full_text.append("| " + " | ".join(str(cell or "").strip() for cell in header) + " |")
+                            full_text.append("| " + " | ".join(["---"] * len(header)) + " |")
+                            for row in table[1:]:
+                                full_text.append("| " + " | ".join(str(cell or "").strip() for cell in row) + " |")
+                            full_text.append("")
+                text = page.extract_text()
+                if text:
+                    full_text.append(text)
+                    full_text.append("")
+            result = "\n".join(full_text).strip()
+            if result and len(result) > 50:
+                print(f"[convert] pdfplumber fallback success: {len(result)} chars")
+                return result
+    except Exception as e:
+        print(f"[convert] pdfplumber fallback failed: {e}")
+    
+    # Fallback 2: pymupdf
+    try:
+        import fitz
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         text = "\n".join(page.get_text() for page in doc)
         if text and len(text.strip()) > 50:
-            print(f"[convert] pymupdf success: {len(text)} chars")
+            print(f"[convert] pymupdf fallback success: {len(text)} chars")
             return text.strip()
     except Exception as e:
-        print(f"[convert] pymupdf failed: {e}")
-
-    try:
-        import pdfminer.high_level
-        text = pdfminer.high_level.extract_text(io.BytesIO(file_bytes))
-        if text and len(text.strip()) > 50:
-            print(f"[convert] pdfminer success: {len(text)} chars")
-            return text.strip()
-    except Exception as e:
-        print(f"[convert] pdfminer failed: {e}")
-
+        print(f"[convert] pymupdf fallback failed: {e}")
+    
+    # Fallback 3: pypdf
     try:
         import pypdf
         reader = pypdf.PdfReader(io.BytesIO(file_bytes))
@@ -156,11 +265,11 @@ def pdf_to_text(file_bytes: bytes) -> str:
             p.extract_text() for p in reader.pages if p.extract_text()
         )
         if text and len(text.strip()) > 50:
-            print(f"[convert] pypdf success: {len(text)} chars")
+            print(f"[convert] pypdf fallback success: {len(text)} chars")
             return text.strip()
     except Exception as e:
-        print(f"[convert] pypdf failed: {e}")
-
+        print(f"[convert] pypdf fallback failed: {e}")
+    
     return ""
 
 
@@ -234,66 +343,79 @@ def json_to_markdown_kv(file_bytes: bytes) -> str:
 
 # ── /convert endpoint ─────────────────────────────────────────────────────────
 
+def sniff_filetype(content_bytes: bytes, filename: str) -> str:
+    """
+    Return the effective file type based on magic bytes first,
+    falling back to extension. Prevents binary garbage when a
+    PDF is uploaded with a .md/.txt extension.
+    """
+    if content_bytes[:4] == b"%PDF":
+        return "pdf"
+    if content_bytes[:2] in (b"PK", ) and filename.endswith((".docx", ".doc", ".xlsx", ".xls")):
+        # ZIP-based Office formats — trust the extension
+        return filename.rsplit(".", 1)[-1].lstrip(".")
+    return filename.rsplit(".", 1)[-1].lstrip(".") if "." in filename else ""
+
+
 @app.post("/convert")
 async def convert_file(file: UploadFile):
     content_bytes = await file.read()
     filename      = (file.filename or "").lower()
+    filetype      = sniff_filetype(content_bytes, filename)
     markdown      = ""
     format_used   = "markdown-kv"
     original_tokens = 0
 
     try:
-        if filename.endswith(".csv"):
+        if filetype == "csv":
             text            = content_bytes.decode("utf-8", errors="replace")
             original_tokens = count_tokens(text)
             markdown        = csv_to_markdown_kv(text)
             format_used     = "markdown-table" if markdown.startswith("|") else "markdown-kv"
 
-        elif filename.endswith(".pdf"):
-            text = pdf_to_text(content_bytes)
-            if not text:
+        elif filetype == "pdf":
+            markdown = pdf_to_markdown(content_bytes)
+            if not markdown:
                 raise HTTPException(
                     400,
                     "Could not extract text from this PDF. "
                     "Make sure it is a text-based PDF, not scanned."
                 )
-            markdown        = text
             format_used     = "markdown"
-            original_tokens = count_tokens(text)
+            original_tokens = count_tokens(content_bytes.decode("utf-8", errors="replace"))
 
-        elif filename.endswith((".docx", ".doc")):
+        elif filetype in ("docx", "doc"):
             markdown        = docx_to_markdown(content_bytes)
             original_tokens = count_tokens(markdown)
             format_used     = "markdown"
 
-        elif filename.endswith((".xlsx", ".xls")):
-            text            = content_bytes.decode("utf-8", errors="replace")
-            original_tokens = count_tokens(text)
+        elif filetype in ("xlsx", "xls"):
+            original_tokens = count_tokens(content_bytes.decode("utf-8", errors="replace"))
             markdown        = xlsx_to_markdown_kv(content_bytes)
             format_used     = "markdown-table" if markdown.startswith("|") else "markdown-kv"
 
-        elif filename.endswith(".json"):
+        elif filetype == "json":
             text            = content_bytes.decode("utf-8", errors="replace")
             original_tokens = count_tokens(text)
             markdown        = json_to_markdown_kv(content_bytes)
             format_used     = "markdown-kv"
 
-        elif filename.endswith((".txt", ".md")):
+        elif filetype in ("txt", "md"):
             raw             = content_bytes.decode("utf-8", errors="replace")
             original_tokens = count_tokens(raw)
             markdown        = txt_to_markdown(raw)
             format_used     = "markdown-kv"
 
-        elif filename.endswith((".html", ".htm")):
+        elif filetype in ("html", "htm"):
             text            = content_bytes.decode("utf-8", errors="replace")
             original_tokens = count_tokens(text)
             markdown        = html_to_markdown(content_bytes)
             format_used     = "markdown"
 
         else:
-            raise HTTPException(400, f"Unsupported file type: {filename}")
+            raise HTTPException(400, f"Unsupported file type: {filename} (detected: {filetype})")
 
-        print(f"[convert] Input: {filename}")
+        print(f"[convert] Input: {filename} (detected: {filetype})")
         print(f"[convert] Format: {format_used}")
         print(f"[convert] First 200 chars of output:")
         print(markdown[:200])
@@ -306,18 +428,8 @@ async def convert_file(file: UploadFile):
                 (original_tokens - converted_tokens) / original_tokens * 100, 1
             )
 
-        # If conversion made it larger, return original unchanged
-        if converted_tokens >= original_tokens and original_tokens > 0:
-            return {
-                "markdown":            content_bytes.decode("utf-8", errors="replace"),
-                "format_used":         "original",
-                "original_size_bytes": original_size,
-                "original_tokens":     original_tokens,
-                "converted_tokens":    original_tokens,
-                "token_reduction_pct": 0.0,
-                "note": "Conversion would increase tokens. Original returned.",
-            }
-
+        # Always return the extracted/converted markdown.
+        # Never fall back to raw file bytes, which would be binary garbage.
         return {
             "markdown":            markdown,
             "format_used":         format_used,
